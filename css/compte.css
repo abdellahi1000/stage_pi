@@ -1,0 +1,153 @@
+/* css/compte.css */
+.profil-section {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.profil-photo {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #007bff;
+  background-color: #e0e0e0;
+}
+
+.profil-photo-placeholder {
+  background-color: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  color: #999;
+}
+
+.profil-info h2 {
+  color: #0056b3;
+  margin-bottom: 15px;
+}
+.profil-info p {
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+.photo-upload {
+  margin-top: 15px;
+}
+.photo-upload input[type="file"] {
+  display: none;
+}
+.photo-upload label {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.history-section {
+  margin-bottom: 40px;
+}
+.history-section h2 {
+  color: #0056b3;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.entreprises-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.entreprise-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: transform 0.2s;
+}
+
+.entreprise-card:hover {
+  transform: translateY(-5px);
+}
+.entreprise-card h3 {
+  margin: 0 0 10px 0;
+  color: #003366;
+  font-size: 18px;
+}
+.entreprise-card p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.search-box-header {
+  position: relative;
+  background: white;
+  height: 50px;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  overflow: hidden;
+}
+
+.search-box-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.2);
+}
+
+.search-box-header.focused {
+  transform: scale(1.02);
+  box-shadow:
+    0 0 0 4px rgba(0, 123, 255, 0.15),
+    0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.search-input-header {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #333;
+  background: transparent;
+  padding: 8px 0;
+}
+
+.search-icon-header {
+  width: 40px;
+  height: 40px;
+  background: #007bff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar {
+  transition: transform 0.3s ease;
+}
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar:not(.hidden) {
+    transform: translateX(0);
+  }
+}

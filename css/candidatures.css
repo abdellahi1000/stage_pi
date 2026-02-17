@@ -1,0 +1,137 @@
+/* css/candidatures.css */
+
+.subtitle {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* Student Section */
+.candidatures-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+}
+
+.candidature-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: transform 0.2s;
+}
+
+.candidature-card h3 {
+  margin: 0 0 10px 0;
+  color: #0056b3;
+  font-size: 18px;
+}
+
+.status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.status-en-attente {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-accepte {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-refuse {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Company Section */
+.offres-section {
+  margin-bottom: 50px;
+}
+
+.offre-item {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.offre-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.offre-header h3 {
+  margin: 0;
+  color: #0056b3;
+  font-size: 20px;
+}
+
+.candidature-count {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.candidats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.candidat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8fbff;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.candidat-info h4 {
+  margin: 0 0 5px 0;
+  color: #003366;
+}
+
+.candidat-info p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.status-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.status-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.action-accepter {
+  background-color: #28a745;
+  color: white;
+}
+
+.action-refuser {
+  background-color: #dc3545;
+  color: white;
+}

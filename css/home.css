@@ -1,0 +1,18 @@
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* Transition pour le menu vertical */
+        .sidebar {
+            transition: transform 0.3s ease;
+        }
+        /* Classe pour masquer le menu sur mobile */
+        .sidebar.hidden {
+            transform: translateX(-100% );
+        }
+        /* Pour que le contenu principal s'adapte à la sidebar sur desktop */
+        @media (min-width: 786px) {
+            .content-area {
+                margin-left: 0.1rem; /* Largeur de la sidebar (w-64) */
+            }
+        }

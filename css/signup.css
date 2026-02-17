@@ -1,0 +1,201 @@
+/* css/signup.css */
+
+body {
+  background: var(--bg-light);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  background: white;
+  max-width: 450px;
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.form-box {
+  padding: 40px;
+}
+
+.form-box h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* Styles pour la sélection du type d'utilisateur */
+.user-type-selection {
+  margin-bottom: 30px;
+}
+
+.selection-text {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.user-type-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.user-type-btn {
+  flex: 1;
+  padding: 20px 15px;
+  border: 2px solid #f0f0f0;
+  background: #fcfcfc;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: #666;
+  font-weight: 700;
+}
+
+.user-type-btn i {
+  font-size: 32px;
+  color: var(--secondary-color);
+  transition: all 0.3s ease;
+}
+
+.user-type-btn:hover {
+  border-color: var(--secondary-color);
+  background: #fff;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.1);
+}
+
+.user-type-btn.active {
+  border-color: var(--secondary-color);
+  background: linear-gradient(
+    135deg,
+    var(--secondary-color) 0%,
+    var(--accent-color) 100%
+  );
+  color: white;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+}
+
+.user-type-btn.active i {
+  color: white;
+}
+
+/* Affichage du type sélectionné */
+.selected-type-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 15px;
+  background: #f8f9ff;
+  border-radius: 12px;
+  color: var(--primary-color);
+  margin-bottom: 25px;
+  position: relative;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.selected-type-display i {
+  font-size: 20px;
+}
+
+.selected-type-display span {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.change-type-btn {
+  position: absolute;
+  right: 10px;
+  background: var(--white);
+  border: 1px solid #ddd;
+  color: #666;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.change-type-btn:hover {
+  background: #f0f0f0;
+}
+
+.options {
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  cursor: pointer;
+}
+
+.options input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--secondary-color);
+}
+
+.options a {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.switch-text {
+  text-align: center;
+  margin-top: 25px;
+  color: #666;
+}
+
+.switch-text a {
+  color: var(--secondary-color);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#signupForm {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@media (max-width: 480px) {
+  .form-box {
+    padding: 30px 20px;
+  }
+  .user-type-btn {
+    padding: 15px 10px;
+  }
+  .user-type-btn i {
+    font-size: 28px;
+  }
+}

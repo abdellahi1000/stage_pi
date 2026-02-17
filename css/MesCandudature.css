@@ -1,0 +1,135 @@
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9;
+        }
+        header {
+            background-color: #0056b3;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .search-bar {
+            flex: 1;
+            margin: 0 20px;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-connexion {
+            background-color: transparent;
+            color: white;
+            border: 1px solid white;
+        }
+        .btn-inscription {
+            background-color: #007bff;
+            color: white;
+        }
+        .container {
+            display: flex;
+        }
+        aside {
+            width: 250px;
+            background-color: #003366;
+            color: white;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        nav li {
+            padding: 15px 20px;
+        }
+        nav li a {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+        nav li.active {
+            background-color: #007bff;
+        }
+        main {
+            flex: 1;
+            padding: 40px;
+        }
+        h1 {
+            color: #003366;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .candidatures-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+        .candidature-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .candidature-card h3 {
+            margin: 0 0 10px 0;
+            color: #0056b3;
+            font-size: 18px;
+        }
+        .candidature-card p {
+            margin: 8px 0;
+            color: #444;
+        }
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status-en-attente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-accepte {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-refuse {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .date {
+            color: #888;
+            font-size: 14px;
+        }
