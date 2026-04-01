@@ -9,6 +9,7 @@ if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' &
     exit;
 }
 
+$is_global_admin = $_SESSION['user_type'] === 'admin';
 $company_id = $_SESSION['company_id'];
 $database = new Database();
 $db = $database->getConnection();
@@ -50,16 +51,31 @@ try {
         exit;
     }
     if ($action === 'list') {
-        $stmt = $db->prepare("SELECT c.*, u.nom, u.prenom, u.email, u.telephone, 
-                                     o.titre as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
-                                     p.specialite, p.universite, p.skills, p.domaine_formation, p.niveau_etudes
-                              FROM candidatures c 
-                              JOIN users u ON c.user_id = u.id 
-                              JOIN offres_stage o ON c.offre_id = o.id 
-                              LEFT JOIN profils p ON u.id = p.user_id
-                              WHERE o.user_id = :cid 
-                              ORDER BY c.date_candidature DESC");
-        $stmt->execute([':cid' => $company_id]);
+        // Global admin sees ALL applications; enterprise sees only theirs
+        if ($is_global_admin) {
+            $stmt = $db->prepare("SELECT c.*, u.nom, u.prenom, u.email, u.telephone, 
+                                         o.titre as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
+                                         p.specialite, p.universite, p.skills, p.domaine_formation, p.niveau_etudes,
+                                         r.nom as recruteur_nom
+                                  FROM candidatures c 
+                                  JOIN users u ON c.user_id = u.id 
+                                  JOIN offres_stage o ON c.offre_id = o.id 
+                                  LEFT JOIN profils p ON u.id = p.user_id
+                                  LEFT JOIN users r ON o.user_id = r.id
+                                  ORDER BY c.date_candidature DESC");
+            $stmt->execute();
+        } else {
+            $stmt = $db->prepare("SELECT c.*, u.nom, u.prenom, u.email, u.telephone, 
+                                         o.titre as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
+                                         p.specialite, p.universite, p.skills, p.domaine_formation, p.niveau_etudes
+                                  FROM candidatures c 
+                                  JOIN users u ON c.user_id = u.id 
+                                  JOIN offres_stage o ON c.offre_id = o.id 
+                                  LEFT JOIN profils p ON u.id = p.user_id
+                                  WHERE o.user_id = :cid 
+                                  ORDER BY c.date_candidature DESC");
+            $stmt->execute([':cid' => $company_id]);
+        }
         $apps = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'applications' => $apps]);
 

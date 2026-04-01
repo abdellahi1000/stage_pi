@@ -10,7 +10,7 @@ if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' &
     exit;
 }
 
-$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Administrator';
+$is_global_admin = $_SESSION['user_type'] === 'admin';
 $company_id = $_SESSION['company_id'];
 $user_id = $_SESSION['user_id'];
 
@@ -28,12 +28,20 @@ if ($action === 'delete') {
 
 try {
     if ($action === 'list') {
-        // Find all users belonging to this company
-        $stmt = $db->prepare("SELECT o.*, (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
-                              FROM offres_stage o 
-                              WHERE o.user_id = :cid 
-                              ORDER BY o.date_publication DESC");
-        $stmt->execute([':cid' => $company_id]);
+        // Global admin sees ALL offers; enterprise sees only their own
+        if ($is_global_admin) {
+            $stmt = $db->prepare("SELECT o.*, u.nom as company_name, (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
+                                  FROM offres_stage o 
+                                  LEFT JOIN users u ON o.user_id = u.id
+                                  ORDER BY o.date_publication DESC");
+            $stmt->execute();
+        } else {
+            $stmt = $db->prepare("SELECT o.*, (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
+                                  FROM offres_stage o 
+                                  WHERE o.user_id = :cid 
+                                  ORDER BY o.date_publication DESC");
+            $stmt->execute([':cid' => $company_id]);
+        }
         $offres = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'offres' => $offres]);
 
@@ -69,11 +77,14 @@ try {
         if ($id) {
             require_permission('can_edit_offers', $db);
             // Update - only if offer belongs to someone in the same company
-            $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
-            $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
-            if ($stmt_v->rowCount() === 0) {
-                 echo json_encode(['success' => false, 'message' => "Offre non trouvée ou accès refusé"]);
-                 exit;
+            // Global admin can edit any offer; enterprise only theirs
+            if (!$is_global_admin) {
+                $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
+                $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
+                if ($stmt_v->rowCount() === 0) {
+                     echo json_encode(['success' => false, 'message' => "Offre non trouvée ou accès refusé"]);
+                     exit;
+                }
             }
 
             $stmt = $db->prepare("UPDATE offres_stage SET 
@@ -135,9 +146,14 @@ try {
     } elseif ($action === 'delete') {
         $id = $_GET['id'] ?? null;
         if ($id) {
-            $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
-            $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
-            if ($stmt_v->rowCount() > 0) {
+            // Global admin can delete any offer
+            $can_delete = $is_global_admin;
+            if (!$can_delete) {
+                $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
+                $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
+                $can_delete = ($stmt_v->rowCount() > 0);
+            }
+            if ($can_delete) {
                 $stmt = $db->prepare("DELETE FROM offres_stage WHERE id = :id");
                 $stmt->execute([':id' => $id]);
                 echo json_encode(['success' => true, 'message' => 'Offre supprimée']);
