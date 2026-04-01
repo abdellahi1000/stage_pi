@@ -10,7 +10,7 @@ require_once '../include/check_permission.php';
 header('Content-Type: application/json');
 
 // Session & Permission check
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_type'] !== 'entreprise' || $_SESSION['user_role'] !== 'Administrator') {
+if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin') || $_SESSION['user_role'] !== 'Administrator') {
     ob_end_clean();
     echo json_encode(['success' => false, 'message' => 'Accès non autorisé.']);
     exit;

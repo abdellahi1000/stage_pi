@@ -4,7 +4,7 @@ require_once '../include/lookups.php';
 require_once '../include/db_connect.php';
 check_auth('entreprise', 'Administrator');
 
-$company_id = $_SESSION['company_id'];
+$company_id = $_SESSION['company_id'] ?? $_SESSION['user_id'] ?? 0;
 $db = (new Database())->getConnection();
 
 // Load settings for badges

@@ -73,8 +73,9 @@ if ($action === 'login') {
             $_SESSION['photo_profil'] = $user['photo_profil'];
             $_SESSION['verified_status'] = $user['verified_status'] ?? 0;
             $_SESSION['logged_in'] = true;
+            $_SESSION['company_id'] = $user['id']; // Set company_id to user_id for context
 
-            // Skip fetching company_id from session as it's not in the users table
+            // Skip fetching company_name from session as it's not in the users table
             $_SESSION['company_name'] = $user['nom']; 
 
             $th_stmt = $db->prepare("SELECT theme FROM preferences_utilisateur WHERE user_id = :uid");
@@ -102,7 +103,9 @@ if ($action === 'login') {
             $update_stmt->execute();
             
             // Redirection logic
-            if ($user['type_compte'] === 'entreprise') {
+            if ($user['type_compte'] === 'admin') {
+                $redirect = 'administrator/index.php';
+            } elseif ($user['type_compte'] === 'entreprise') {
                 $redirect = ($_SESSION['user_role'] === 'Administrator') ? 'administrator/index.php' : 'enterprise/index.php';
             } else {
                 $redirect = 'students/index.php';

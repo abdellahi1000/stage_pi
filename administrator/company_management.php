@@ -5,7 +5,7 @@ check_auth('entreprise', 'Administrator');
 
 $database = new Database();
 $db = $database->getConnection();
-$company_id = $_SESSION['company_id'];
+$company_id = $_SESSION['company_id'] ?? $_SESSION['user_id'] ?? 0;
 
 // Handling quick delete for now directly in PHP, since it's simple
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user_id'])) {

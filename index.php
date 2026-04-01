@@ -6,8 +6,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
-if ($_SESSION['user_type'] === 'entreprise') {
-    header("Location: enterprise/index.php");
+if ($_SESSION['user_type'] === 'admin') {
+    header("Location: administrator/index.php");
+} else if ($_SESSION['user_type'] === 'entreprise') {
+    header("Location: " . (($_SESSION['user_role'] === 'Administrator') ? "administrator/index.php" : "enterprise/index.php"));
 } else if ($_SESSION['user_type'] === 'etudiant') {
     header("Location: students/index.php");
 } else {

@@ -7,7 +7,7 @@
 session_start();
 require_once __DIR__ . '/../include/db_connect.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'entreprise') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin')) {
     http_response_code(403);
     echo 'Accès refusé';
     exit;

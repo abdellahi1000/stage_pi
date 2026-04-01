@@ -4,7 +4,7 @@ require_once '../include/db_connect.php';
 check_auth('entreprise', 'Administrator');
 
 $db = (new Database())->getConnection();
-$company_id = $_SESSION['company_id'];
+$company_id = $_SESSION['company_id'] ?? $_SESSION['user_id'] ?? 0;
 
 // Handling marks as read (or simple responses logic)
 // Fetch all requests sent to this company

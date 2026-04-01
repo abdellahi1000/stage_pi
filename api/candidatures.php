@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-if ($_SESSION['user_type'] !== 'entreprise') {
+if ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'Accès réservé aux entreprises']);
     exit;
 }

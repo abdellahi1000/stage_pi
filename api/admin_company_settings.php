@@ -4,7 +4,7 @@ require_once '../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_type'] !== 'entreprise' || $_SESSION['user_role'] !== 'Administrator') {
+if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin') || $_SESSION['user_role'] !== 'Administrator') {
     echo json_encode(['success' => false, 'message' => 'Accès non autorisé.']);
     exit;
 }

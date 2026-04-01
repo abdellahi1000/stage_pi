@@ -9,7 +9,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['user_role'] !== 'Administrator'
     exit;
 }
 
-$company_id = $_SESSION['company_id'];
+$company_id = $_SESSION['company_id'] ?? $_SESSION['user_id'] ?? 0;
 $user_id = $_SESSION['user_id'];
 $database = new Database();
 $db = $database->getConnection();

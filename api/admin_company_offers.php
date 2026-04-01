@@ -4,8 +4,8 @@ require_once '../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-// Check if logged in. Allow Administrator or anyone with company access if we add employee roles later.
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_type'] !== 'entreprise') {
+// Check if logged in. Allow 'admin' or 'entreprise' types.
+if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin')) {
     echo json_encode(['success' => false, 'message' => 'Accès non autorisé']);
     exit;
 }

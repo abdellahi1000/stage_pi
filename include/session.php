@@ -43,8 +43,10 @@ function check_auth($allowed_type = null, $required_role = null) {
     }
 
     // Type check
-    if ($allowed_type !== null && $_SESSION['user_type'] !== $allowed_type) {
-        if ($_SESSION['user_type'] === 'entreprise') {
+    if ($allowed_type !== null && $_SESSION['user_type'] !== $allowed_type && $_SESSION['user_type'] !== 'admin') {
+        if ($_SESSION['user_type'] === 'admin') {
+            header("Location: " . $root_path . "administrator/index.php");
+        } else if ($_SESSION['user_type'] === 'entreprise') {
             if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Administrator') {
                 header("Location: " . $root_path . "administrator/index.php");
             } else {
