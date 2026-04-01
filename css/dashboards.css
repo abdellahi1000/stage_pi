@@ -80,6 +80,8 @@
   right: 0;
   opacity: 0 !important;
   visibility: hidden !important;
+  background-color: #ffffff !important;
+  border-radius: 12px !important;
   transform: translateY(-10px) scale(0.95) !important;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none !important;

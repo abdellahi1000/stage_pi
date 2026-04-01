@@ -120,7 +120,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <label style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #374151;">Type de Problème / Group</label>
                     <div style="position: relative;" class="custom-dropdown" id="dropdownProblem">
                         <input type="hidden" name="problem_type" required value="Sécurité">
-                        <button type="button" style="width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 14px; background-color: #f9fafb; color: #374151; appearance: none; outline: none; transition: all 0.2s; box-sizing: border-box; text-align: left; position: relative;" onfocus="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#fff';" onblur="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';">
+                        <button type="button" style="width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 12px!important; font-size: 14px; background-color: #ffffff; color: #374151; appearance: none; outline: none; transition: all 0.2s; box-sizing: border-box; text-align: left; position: relative;" onfocus="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#fff';" onblur="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#ffffff';">
                             <span>Problème de Sécurité</span>
                             <i class="fas fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none;"></i>
                         </button>
