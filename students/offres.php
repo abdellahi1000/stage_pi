@@ -57,6 +57,7 @@ $sm_contract_types = sm_get_contract_types();
                     
                     <!-- Custom Dropdown Localisation -->
                     <div class="relative custom-dropdown" id="dropdownLocalisation">
+                        <input type="hidden" name="localisation" value="">
                         <button class="w-full px-5 py-4 rounded-2xl border border-gray-200 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all">
                             <span class="truncate text-gray-700 font-medium">Localisation</span>
                             <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
@@ -73,6 +74,7 @@ $sm_contract_types = sm_get_contract_types();
 
                     <!-- Custom Dropdown Type -->
                     <div class="relative custom-dropdown" id="dropdownType">
+                        <input type="hidden" name="type_contrat" value="">
                         <button class="w-full px-5 py-4 rounded-2xl border border-gray-200 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all">
                             <span class="truncate text-gray-700 font-medium">Type de contrat</span>
                             <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>

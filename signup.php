@@ -22,7 +22,9 @@ $sm_company_sizes = sm_get_company_sizes();
     <!-- CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <link rel="stylesheet" href="css/global.css"/>
+    <link rel="stylesheet" href="css/dashboards.css"/>
     <link rel="stylesheet" href="css/login.css?v=<?= filemtime('css/login.css'); ?>"/>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="js/global.js" defer></script>
     <script src="js/signup.js" defer></script>
 </head>
@@ -99,28 +101,38 @@ $sm_company_sizes = sm_get_company_sizes();
 
                     <div class="grid-form grid-2-cols mb-4">
                         <div class="input-group">
-                            <select id="industry_sector" name="industry_sector" style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: #fff; font-size: 14px; appearance: none; cursor:pointer;" onchange="this.style.color=this.value===''?'rgba(255,255,255,0.7)':'#fff';">
-                                <option value="" disabled selected style="color: #333;">Secteur d'activité</option>
-                                <?php foreach ($sm_industry_sectors as $sector): ?>
-                                    <option value="<?php echo htmlspecialchars($sector['code']); ?>" style="color: #333;">
-                                        <?php echo htmlspecialchars($sector['label']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <i class="fas fa-briefcase" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6);"></i>
-                            <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                            <div class="relative custom-dropdown w-full" id="dropdownSector" style="margin-bottom: 0;">
+                                <input type="hidden" name="industry_sector" required>
+                                <button type="button" class="w-full" style="padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: left; position: relative;">
+                                    <span class="truncate">Secteur d'activité</span>
+                                    <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                                </button>
+                                <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <?php foreach ($sm_industry_sectors as $sector): ?>
+                                        <div class="dropdown-item" data-value="<?php echo htmlspecialchars($sector['code']); ?>" style="color: #333;">
+                                            <?php echo htmlspecialchars($sector['label']); ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <i class="fas fa-briefcase" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); z-index: 10;"></i>
                         </div>
                         <div class="input-group">
-                            <select id="company_size" name="company_size" style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: #fff; font-size: 14px; appearance: none; cursor:pointer;" onchange="this.style.color=this.value===''?'rgba(255,255,255,0.7)':'#fff';">
-                                <option value="" disabled selected style="color: #333;">Taille de l'entreprise</option>
-                                <?php foreach ($sm_company_sizes as $size): ?>
-                                    <option value="<?php echo htmlspecialchars($size['code']); ?>" style="color: #333;">
-                                        <?php echo htmlspecialchars($size['label']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <i class="fas fa-users" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6);"></i>
-                            <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                            <div class="relative custom-dropdown w-full" id="dropdownSize" style="margin-bottom: 0;">
+                                <input type="hidden" name="company_size" required>
+                                <button type="button" class="w-full" style="padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: left; position: relative;">
+                                    <span class="truncate">Taille de l'entreprise</span>
+                                    <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                                </button>
+                                <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <?php foreach ($sm_company_sizes as $size): ?>
+                                        <div class="dropdown-item" data-value="<?php echo htmlspecialchars($size['code']); ?>" style="color: #333;">
+                                            <?php echo htmlspecialchars($size['label']); ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <i class="fas fa-users" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); z-index: 10;"></i>
                         </div>
                     </div>
 
@@ -137,17 +149,39 @@ $sm_company_sizes = sm_get_company_sizes();
                             Seules les entreprises avec documents officiels pourront être vérifiées.
                         </p>
 
-                        <div class="input-group" style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Registre de Commerce *</label>
-                            <input type="file" id="doc_registry" name="doc_registry" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
-                        </div>
-                        <div class="input-group" style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Numéro d'Identification Fiscale (NIF) *</label>
-                            <input type="file" id="doc_tax" name="doc_tax" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
-                        </div>
-                        <div class="input-group" style="margin-bottom: 10px;">
-                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Document cacheté/signé officiel *</label>
-                            <input type="file" id="doc_stamp" name="doc_stamp" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
+                        <div class="space-y-3">
+                            <div class="file-input-wrapper">
+                                <label for="doc_registry" class="file-label">
+                                    <span class="file-label-text">Registre de Commerce *</span>
+                                    <div class="file-input-container">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span class="file-name-display">Choisir un fichier PDF</span>
+                                    </div>
+                                    <input type="file" id="doc_registry" name="doc_registry" accept=".pdf" class="hidden-file-input" />
+                                </label>
+                            </div>
+
+                            <div class="file-input-wrapper">
+                                <label for="doc_tax" class="file-label">
+                                    <span class="file-label-text">Numéro d'Identification Fiscale (NIF) *</span>
+                                    <div class="file-input-container">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span class="file-name-display">Choisir un fichier PDF</span>
+                                    </div>
+                                    <input type="file" id="doc_tax" name="doc_tax" accept=".pdf" class="hidden-file-input" />
+                                </label>
+                            </div>
+
+                            <div class="file-input-wrapper">
+                                <label for="doc_stamp" class="file-label">
+                                    <span class="file-label-text">Document cacheté/signé officiel *</span>
+                                    <div class="file-input-container">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span class="file-name-display">Choisir un fichier PDF</span>
+                                    </div>
+                                    <input type="file" id="doc_stamp" name="doc_stamp" accept=".pdf" class="hidden-file-input" />
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

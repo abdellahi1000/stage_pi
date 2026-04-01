@@ -32,7 +32,7 @@ if ($action === 'login') {
     }
     
     try {
-        $query = "SELECT id, nom, prenom, email, password, password_admin, type_compte, role, company_id, telephone, photo_profil, actif, account_status, verified_status FROM users WHERE email = :email";
+        $query = "SELECT id, nom, prenom, email, password, type_compte, role, company_id, telephone, photo_profil, actif, account_status, verified_status FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -49,18 +49,11 @@ if ($action === 'login') {
             exit;
         }
 
-        $is_admin_login = false;
         $login_success = false;
 
-        // 1) Check Administrator Password First (Plaintext check)
-        if ($user['type_compte'] === 'entreprise' && !empty($user['password_admin']) && $password === $user['password_admin']) {
+        // Check Password (Hashed)
+        if (password_verify($password, $user['password'])) {
             $login_success = true;
-            $is_admin_login = true;
-        }
-        // 2) Check Normal Password (Hashed)
-        elseif (password_verify($password, $user['password'])) {
-            $login_success = true;
-            $is_admin_login = false;
         }
         
         if ($login_success) {
@@ -70,8 +63,7 @@ if ($action === 'login') {
             $_SESSION['user_prenom'] = $user['prenom'];
             $_SESSION['user_type'] = $user['type_compte'];
             
-            // role = 'Administrator' ONLY for the admin password login
-            $_SESSION['user_role'] = $is_admin_login ? 'Administrator' : ($user['role'] ?? 'user'); 
+            $_SESSION['user_role'] = $user['role'] ?? 'user'; 
             
             $_SESSION['company_id'] = $user['company_id'];
             $_SESSION['user_tel'] = $user['telephone'];
@@ -116,7 +108,7 @@ if ($action === 'login') {
             
             // Redirection logic
             if ($user['type_compte'] === 'entreprise') {
-                $redirect = $is_admin_login ? 'administrator/index.php' : 'enterprise/index.php';
+                $redirect = ($user['role'] === 'Administrator') ? 'administrator/index.php' : 'enterprise/index.php';
             } else {
                 $redirect = 'students/index.php';
             }

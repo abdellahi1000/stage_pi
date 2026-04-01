@@ -17,14 +17,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'GET') {
-        $stmt = $db->prepare("SELECT id, nom, slogan, bio, industry_sector, company_size, website_url, adresse as siege, photo_profil, password_admin, email 
+        $stmt = $db->prepare("SELECT id, nom, slogan, bio, industry_sector, company_size, website_url, adresse as siege, photo_profil, email 
                               FROM users WHERE id = :cid");
         $stmt->execute([':cid' => $company_id]);
         $company = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Don't leak passwords obviously, but we might need to check if user has admin password set
-        $company['has_admin_password'] = !empty($company['password_admin']);
-        unset($company['password_admin']);
+        // No longer using password_admin
+        $company['has_admin_password'] = true; // Default to true since we use main password
         
         echo json_encode(['success' => true, 'company' => $company]);
 

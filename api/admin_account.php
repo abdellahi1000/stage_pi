@@ -17,7 +17,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'GET') {
-        $stmt = $db->prepare("SELECT email, user_nom as nom, user_prenom as prenom, telephone, photo_profil, bio FROM users WHERE id = :uid");
+        $stmt = $db->prepare("SELECT email, nom, prenom, telephone, photo_profil, bio FROM users WHERE id = :uid");
         $stmt->execute([':uid' => $user_id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'user' => $user]);
@@ -36,7 +36,7 @@ try {
         $confirm_pw = $data['confirm_password'] ?? '';
 
         // 1. Update Profile Info
-        $stmt = $db->prepare("UPDATE users SET email = :email, user_nom = :nom, user_prenom = :prenom, telephone = :tel, bio = :bio WHERE id = :uid");
+        $stmt = $db->prepare("UPDATE users SET email = :email, nom = :nom, prenom = :prenom, telephone = :tel, bio = :bio WHERE id = :uid");
         $stmt->execute([
             ':email' => $email, 
             ':nom' => $nom,
@@ -57,8 +57,8 @@ try {
                 exit;
             }
 
-            // Verify current password_admin
-            $stmt_v = $db->prepare("SELECT password_admin FROM users WHERE id = :uid");
+            // Verify current password
+            $stmt_v = $db->prepare("SELECT password FROM users WHERE id = :uid");
             $stmt_v->execute([':uid' => $user_id]);
             $hash = $stmt_v->fetchColumn();
 
@@ -67,9 +67,9 @@ try {
                 exit;
             }
 
-            // Set new password_admin
+            // Set new password
             $new_hash = password_hash($new_pw, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE users SET password_admin = :pw WHERE id = :uid");
+            $stmt = $db->prepare("UPDATE users SET password = :pw WHERE id = :uid");
             $stmt->execute([':pw' => $new_hash, ':uid' => $user_id]);
         }
 

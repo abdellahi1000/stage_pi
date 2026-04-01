@@ -97,20 +97,25 @@ $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="space-y-2">
                                 <label class="text-sm font-extrabold text-slate-800 ml-1">Entreprise concernée</label>
                                 <div class="relative group">
-                                    <select name="company_id" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all duration-300 appearance-none cursor-pointer">
-                                        <option value="" disabled selected>Sélectionnez l'entreprise...</option>
+                                <div class="relative custom-dropdown" id="dropdownCompany">
+                                    <input type="hidden" name="company_id" required>
+                                    <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center hover:border-blue-500 transition-all">
+                                        <span class="truncate text-gray-500 font-medium">Sélectionnez l'entreprise...</span>
+                                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
+                                    </button>
+                                    <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
                                         <?php foreach ($companies as $comp): ?>
-                                            <option value="<?php echo $comp['company_id']; ?>"><?php echo htmlspecialchars($comp['company_name']); ?></option>
-                                        <?php
-endforeach; ?>
+                                            <div class="dropdown-item" data-value="<?php echo $comp['company_id']; ?>">
+                                                <?php echo htmlspecialchars($comp['company_name']); ?>
+                                            </div>
+                                        <?php endforeach; ?>
                                         <?php if (empty($companies)): ?>
-                                            <option value="" disabled>Aucune candidature (Vous ne pouvez contacter que les entreprises où vous avez postulé)</option>
-                                        <?php
-endif; ?>
-                                    </select>
-                                    <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-blue-500 transition-colors">
-                                        <i class="fas fa-chevron-down text-sm"></i>
+                                            <div class="dropdown-item disabled text-gray-400 italic text-xs" data-value="">
+                                                Aucune candidature trouvée
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
+                                </div>
                                 </div>
                             </div>
                             <div class="space-y-2">

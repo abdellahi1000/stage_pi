@@ -18,6 +18,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     <!-- CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <link rel="stylesheet" href="css/global.css"/>
+    <link rel="stylesheet" href="css/dashboards.css"/>
     <link rel="stylesheet" href="css/login.css?v=<?= filemtime('css/login.css'); ?>"/>
     <script src="js/global.js" defer></script>
     <script src="js/login.js?v=<?= filemtime('js/login.js'); ?>" defer></script>
@@ -117,14 +118,18 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
                 <div style="margin-bottom: 18px;">
                     <label style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #374151;">Type de Problème / Group</label>
-                    <div style="position: relative;">
-                        <select name="problem_type" required style="width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 14px; background-color: #f9fafb; color: #374151; appearance: none; outline: none; transition: all 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#fff';" onblur="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';">
-                            <option value="Sécurité">Problème de Sécurité</option>
-                            <option value="Accès">Problème d'Accès</option>
-                            <option value="Technique">Problème Technique</option>
-                            <option value="Autre">Autre</option>
-                        </select>
-                        <i class="fas fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none;"></i>
+                    <div style="position: relative;" class="custom-dropdown" id="dropdownProblem">
+                        <input type="hidden" name="problem_type" required value="Sécurité">
+                        <button type="button" style="width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 14px; background-color: #f9fafb; color: #374151; appearance: none; outline: none; transition: all 0.2s; box-sizing: border-box; text-align: left; position: relative;" onfocus="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#fff';" onblur="this.style.borderColor='#e5e7eb'; this.style.backgroundColor='#f9fafb';">
+                            <span>Problème de Sécurité</span>
+                            <i class="fas fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none;"></i>
+                        </button>
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="Sécurité">Problème de Sécurité</div>
+                            <div class="dropdown-item" data-value="Accès">Problème d'Accès</div>
+                            <div class="dropdown-item" data-value="Technique">Problème Technique</div>
+                            <div class="dropdown-item" data-value="Autre">Autre</div>
+                        </div>
                     </div>
                 </div>
                 

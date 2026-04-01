@@ -21,55 +21,15 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // --- Custom Dropdowns Logic ---
-  document.querySelectorAll(".custom-dropdown").forEach((dropdown) => {
-    const button = dropdown.querySelector("button");
-    const menu = dropdown.querySelector(".dropdown-menu");
-    const label = button.querySelector("span");
-    const icon = button.querySelector(".fa-chevron-down");
-
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      // Close other dropdowns
-      document.querySelectorAll(".dropdown-menu").forEach((m) => {
-        if (m !== menu) m.classList.remove("active");
-      });
-      document.querySelectorAll(".fa-chevron-down").forEach((i) => {
-        if (i !== icon) i.classList.remove("rotate-180");
-      });
-
-      menu.classList.toggle("active");
-      icon.classList.toggle("rotate-180");
-    });
-
-    menu.querySelectorAll(".dropdown-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        const value = item.dataset.value;
-        const text = item.textContent;
-
-        label.textContent = text;
-        menu.classList.remove("active");
-        icon.classList.remove("rotate-180");
-
-        if (dropdown.id === "dropdownLocalisation") {
-          activeFilters.localisation = value;
-        } else if (dropdown.id === "dropdownType") {
-          activeFilters.type = value;
-        }
-
-        loadOffres();
-      });
-    });
+  // --- Custom Dropdowns Integration ---
+  document.getElementById("dropdownLocalisation")?.addEventListener("change", (e) => {
+    activeFilters.localisation = e.detail.value;
+    loadOffres();
   });
 
-  // Close dropdowns on outside click
-  window.addEventListener("click", () => {
-    document
-      .querySelectorAll(".dropdown-menu")
-      .forEach((m) => m.classList.remove("active"));
-    document
-      .querySelectorAll(".fa-chevron-down")
-      .forEach((i) => i.classList.remove("rotate-180"));
+  document.getElementById("dropdownType")?.addEventListener("change", (e) => {
+    activeFilters.type = e.detail.value;
+    loadOffres();
   });
 
   // --- Corporate Modal Logic (if exists) ---

@@ -137,5 +137,102 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
   }
+
+  // --- Reusable Custom Dropdown Component ---
+  setupCustomDropdowns();
 });
+
+/**
+ * Custom Dropdown Global Implementation
+ */
+function setupCustomDropdowns() {
+  document.querySelectorAll(".custom-dropdown").forEach((dropdown) => {
+    const button = dropdown.querySelector("button");
+    const menu = dropdown.querySelector(".dropdown-menu");
+    const label = button.querySelector("span");
+    const icon = button.querySelector(".fa-chevron-down");
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    
+    // Initial State Check
+    let initialItem = null;
+    if (hiddenInput && hiddenInput.value) {
+        initialItem = menu.querySelector(`.dropdown-item[data-value="${hiddenInput.value}"]`);
+    } else {
+        // Fallback to matching label text
+        const currentText = label.textContent.trim();
+        initialItem = Array.from(menu.querySelectorAll('.dropdown-item')).find(item => item.textContent.trim() === currentText);
+    }
+
+    if (initialItem) {
+        initialItem.classList.add('selected');
+        if (initialItem.dataset.value !== "" && initialItem.dataset.value !== undefined) {
+            button.classList.add('selected');
+        }
+    }
+
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close other dropdowns
+      document.querySelectorAll(".dropdown-menu").forEach((m) => {
+        if (m !== menu) m.classList.remove("active");
+      });
+      document.querySelectorAll(".fa-chevron-down").forEach((i) => {
+        if (i && i !== icon) i.classList.remove("rotate-180");
+      });
+
+      menu.classList.toggle("active");
+      if (icon) icon.classList.toggle("rotate-180");
+    });
+
+    menu.querySelectorAll(".dropdown-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const value = item.dataset.value;
+        const text = item.textContent;
+
+        label.textContent = text;
+        
+        // Handle visual selection
+        menu.querySelectorAll(".dropdown-item").forEach(di => di.classList.remove('selected'));
+        item.classList.add('selected');
+        
+        // Mark button as selected if not empty
+        if (value !== "") {
+            button.classList.add('selected');
+        } else {
+            button.classList.remove('selected');
+        }
+
+        menu.classList.remove("active");
+        if (icon) icon.classList.remove("rotate-180");
+
+        if (hiddenInput) {
+            hiddenInput.value = value;
+            // Trigger change event manually for hidden input
+            hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // Custom Event for pages to listen to
+        dropdown.dispatchEvent(new CustomEvent('change', { 
+            detail: { value: value, text: text } 
+        }));
+      });
+    });
+  });
+
+  // Close all dropdowns on outside click
+  window.addEventListener("click", () => {
+    document.querySelectorAll(".dropdown-menu").forEach((m) => m.classList.remove("active"));
+    document.querySelectorAll(".fa-chevron-down").forEach((i) => i.classList.remove("rotate-180"));
+  });
+}
+
+/**
+ * Helper to update dropdown programmatically
+ */
+function updateDropdown(dropdownId, value) {
+    const d = document.getElementById(dropdownId);
+    if (!d) return;
+    const item = d.querySelector(`.dropdown-item[data-value="${value}"]`);
+    if (item) item.click();
+}
 

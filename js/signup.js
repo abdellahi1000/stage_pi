@@ -54,6 +54,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Handle Modern File Input display name
+  document.querySelectorAll(".hidden-file-input").forEach((input) => {
+    input.addEventListener("change", function () {
+      const fileNameDisplay = this.parentElement.querySelector(".file-name-display");
+      if (this.files && this.files.length > 0) {
+        fileNameDisplay.textContent = this.files[0].name;
+        fileNameDisplay.style.color = "var(--secondary-color)";
+      } else {
+        fileNameDisplay.textContent = "Choisir un fichier PDF";
+        fileNameDisplay.style.color = "rgba(255, 255, 255, 0.6)";
+      }
+    });
+  });
+
   if (signupForm) {
     signupForm.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -71,6 +85,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (password !== passwordConfirm) {
         showMessage("Les mots de passe ne correspondent pas", "error");
         return;
+      }
+
+      // Final check for required fields if entreprise
+      if (userType === 'entreprise') {
+          const industry = document.getElementById('industry_sector').value;
+          const size = document.getElementById('company_size').value;
+          
+          if (!industry || !size) {
+              showMessage("Veuillez sélectionner le secteur et la taille de l'entreprise", "error");
+              return;
+          }
       }
 
       submitBtn.disabled = true;
