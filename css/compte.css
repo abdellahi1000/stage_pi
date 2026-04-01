@@ -147,7 +147,10 @@
   .sidebar {
     transform: translateX(-100%);
   }
-  .sidebar:not(.hidden) {
+  /* Use .active (same as global.js) so the X close button works on Mon Compte */
+  .sidebar.active {
     transform: translateX(0);
   }
 }
+
+

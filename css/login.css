@@ -46,7 +46,10 @@ body {
 .image-section {
   flex: 1;
   background-color: #000;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6));
+  background-image: url('../img/stage_app.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -173,12 +176,12 @@ body {
   position: relative;
 }
 
-.custom-checkbox:hover input ~ .checkmark {
+.custom-checkbox:hover input~.checkmark {
   border-color: var(--secondary-color);
   background-color: #f9fafb;
 }
 
-.custom-checkbox input:checked ~ .checkmark {
+.custom-checkbox input:checked~.checkmark {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
 }
@@ -196,7 +199,7 @@ body {
   transform: rotate(45deg);
 }
 
-.custom-checkbox input:checked ~ .checkmark:after {
+.custom-checkbox input:checked~.checkmark:after {
   display: block;
 }
 
@@ -225,11 +228,44 @@ body {
 }
 
 /* Responsive */
+.mobile-branding {
+  display: none;
+}
+
 @media (max-width: 968px) {
   .image-section {
     display: none;
   }
+
   .login-section {
     padding: 40px 20px;
+  }
+
+  .mobile-branding {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+
+  .mobile-logo {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    margin-bottom: 8px;
+  }
+
+  .mobile-app-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .login-section h2,
+  .login-section p.subtitle {
+    text-align: center;
   }
 }

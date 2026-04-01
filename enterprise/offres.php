@@ -1,6 +1,11 @@
 <?php 
 require_once '../include/session.php';
+require_once '../include/lookups.php';
 check_auth('entreprise');
+
+// Preload lookups for dropdowns
+$sm_cities = sm_get_cities();
+$sm_contract_types = sm_get_contract_types();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -16,13 +21,13 @@ check_auth('entreprise');
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="../js/global.js" defer></script>
-    <script src="../js/enterprise_offres.js" defer></script>
+    <script src="../js/enterprise_offres.js?v=<?php echo time(); ?>" defer></script>
 </head>
-<body class="bg-gray-50">
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
     <div class="flex">
         <?php include '../include/sidebar.php'; ?>
 
-        <main class="flex-1 min-h-screen overflow-y-auto md:ml-64">
+        <main class="flex-1 min-h-screen overflow-y-auto bg-gray-50 md:ml-64">
             <!-- Mobile Toggle -->
             <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
                 <div class="flex items-center space-x-2">
@@ -30,8 +35,7 @@ check_auth('entreprise');
                 </div>
                 <button id="sidebarToggle" class="text-gray-700 p-1"><i class="fas fa-bars text-xl"></i></button>
             </div>
-
-            <div class="max-w-5xl mx-auto px-6 py-10">
+<div class="max-w-5xl mx-auto px-6 py-10">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <div>
                         <h1 class="text-4xl font-extrabold text-gray-900 mb-1">Mes Offres</h1>
@@ -60,28 +64,68 @@ check_auth('entreprise');
                         <input type="text" id="searchOffre" placeholder="Rechercher dans mes offres..." class="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-white focus:border-blue-500 outline-none transition-all shadow-sm">
                     </div>
 
-                    <!-- Filter Dropdowns -->
-                    <div class="relative custom-dropdown" id="dropdownStatut">
+                    <div class="relative custom-dropdown" id="dropdownLocalisation">
                         <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
-                            <span class="truncate text-gray-700 font-medium">Statut</span>
-                            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
+                            <span class="truncate text-gray-700 font-medium">Localisation</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                         </button>
+                        <input type="hidden" name="filter_localisation" value="">
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
-                            <div class="dropdown-item" data-value="">Tout</div>
-                            <div class="dropdown-item" data-value="active">Active</div>
-                            <div class="dropdown-item" data-value="archivee">Archivée</div>
+                            <div class="dropdown-item" data-value="">Toutes les Villes</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Capitale</div>
+                            <div class="dropdown-item" data-value="Nouakchott">Nouakchott</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Autres Villes</div>
+                            <?php foreach ($sm_cities as $city): if ($city['code'] === 'Nouakchott') continue; ?>
+                                <div class="dropdown-item" data-value="<?php echo htmlspecialchars($city['code']); ?>"><?php echo htmlspecialchars($city['label']); ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="relative custom-dropdown" id="dropdownCategory">
+                        <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
+                            <span class="truncate text-gray-700 font-medium">Catégorie</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+                        <input type="hidden" name="filter_category" value="">
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="">Toutes les Catégories</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Secteurs Principaux</div>
+                            <div class="dropdown-item" data-value="1">Informatique</div>
+                            <div class="dropdown-item" data-value="2">Mines & Ressources</div>
+                            <div class="dropdown-item" data-value="3">Télécommunications</div>
+                            <div class="dropdown-item" data-value="4">Commerce & Marketing</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Support & Services</div>
+                            <div class="dropdown-item" data-value="5">Finance & Comptabilité</div>
+                            <div class="dropdown-item" data-value="6">Ressources Humaines</div>
                         </div>
                     </div>
 
                     <div class="relative custom-dropdown" id="dropdownType">
                         <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
                             <span class="truncate text-gray-700 font-medium">Type</span>
-                            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                         </button>
+                        <input type="hidden" name="filter_type" value="">
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
                             <div class="dropdown-item" data-value="">Tout</div>
-                            <div class="dropdown-item" data-value="Stage">Stage</div>
-                            <div class="dropdown-item" data-value="PFE">PFE</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Formats Disponibles</div>
+                            <?php foreach ($sm_contract_types as $ct): ?>
+                                <div class="dropdown-item" data-value="<?php echo htmlspecialchars($ct['code']); ?>"><?php echo htmlspecialchars($ct['label']); ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="relative custom-dropdown" id="dropdownStatut">
+                        <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
+                            <span class="truncate text-gray-700 font-medium">Statut</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+                        <input type="hidden" name="filter_statut" value="">
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="">Tout</div>
+                            <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Options de Visibilité</div>
+                            <div class="dropdown-item" data-value="active">Active</div>
+                            <div class="dropdown-item" data-value="archivee">Archivée</div>
                         </div>
                     </div>
                 </div>
@@ -110,11 +154,30 @@ check_auth('entreprise');
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Titre de l'offre</label>
-                            <input type="text" name="titre" required placeholder="Ex: Développeur PHP" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                            <input type="text" name="titre" required placeholder="Ex: Développeur PHP" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-mediu0:03 / 1:59
+                            m">
                         </div>
                         <div class="space-y-2">
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Localisation</label>
-                            <input type="text" name="localisation" required placeholder="Ex: Nouakchott" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                            <div class="relative custom-dropdown" id="formDropdownLocalisation">
+                                <?php 
+                                    $sm_default_city = $sm_cities[0]['code'] ?? 'Nouakchott';
+                                    $sm_default_city_label = $sm_cities[0]['label'] ?? 'Nouakchott';
+                                ?>
+                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                                    <span class="truncate">Nouakchott</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400"></i>
+                                </button>
+                                <input type="hidden" name="localisation" value="Nouakchott" required>
+                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Capitale</div>
+                                    <div class="dropdown-item" data-value="Nouakchott">Nouakchott</div>
+                                    <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Autres Villes</div>
+                                    <?php foreach ($sm_cities as $city): if ($city['code'] === 'Nouakchott') continue; ?>
+                                        <div class="dropdown-item" data-value="<?php echo htmlspecialchars($city['code']); ?>"><?php echo htmlspecialchars($city['label']); ?></div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -122,14 +185,20 @@ check_auth('entreprise');
                         <div class="space-y-2">
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Type de Contrat</label>
                             <div class="relative custom-dropdown" id="formDropdownType">
+                                <?php 
+                                    $sm_default_contract = $sm_contract_types[0]['code'] ?? 'Stage';
+                                    $sm_default_contract_label = $sm_contract_types[0]['label'] ?? 'Stage';
+                                ?>
                                 <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
                                     <span class="truncate">Stage</span>
-                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400"></i>
                                 </button>
-                                <input type="hidden" name="type_contrat" value="Stage">
+                                <input type="hidden" name="type_contrat" value="Stage" required>
                                 <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
-                                    <div class="dropdown-item" data-value="Stage">Stage</div>
-                                    <div class="dropdown-item" data-value="PFE">PFE</div>
+                                    <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Formats Disponibles</div>
+                                    <?php foreach ($sm_contract_types as $ct): ?>
+                                        <div class="dropdown-item" data-value="<?php echo htmlspecialchars($ct['code']); ?>"><?php echo htmlspecialchars($ct['label']); ?></div>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
                         </div>
@@ -142,39 +211,79 @@ check_auth('entreprise');
                                 </button>
                                 <input type="hidden" name="categorie_id" value="1">
                                 <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Secteurs Principaux</div>
                                     <div class="dropdown-item" data-value="1">Informatique</div>
                                     <div class="dropdown-item" data-value="2">Mines & Ressources</div>
                                     <div class="dropdown-item" data-value="3">Télécommunications</div>
                                     <div class="dropdown-item" data-value="4">Commerce & Marketing</div>
+                                    <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Support & Services</div>
+                                    <div class="dropdown-item" data-value="5">Finance & Comptabilité</div>
+                                    <div class="dropdown-item" data-value="6">Ressources Humaines</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Durée / Période</label>
-                            <input type="text" name="duree" placeholder="Ex: 3 mois" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Statut Individuel</label>
-                            <div class="relative custom-dropdown" id="formDropdownStatut">
-                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
-                                    <span class="truncate">Active</span>
-                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
-                                </button>
-                                <input type="hidden" name="statut" value="active">
-                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
-                                    <div class="dropdown-item" data-value="active">Active (Visible)</div>
-                                    <div class="dropdown-item" data-value="archivee">Archivée (Masquée)</div>
-                                </div>
+                    <div class="pt-6 border-t border-gray-100">
+                        <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                             <i class="fas fa-layer-group"></i> Détails Complémentaires (Group Optional)
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-6 mb-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Spécialisation</label>
+                                <input type="text" name="specialization" placeholder="Ex: Développement Web" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-medium">
                             </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Tags (Séparez par des virgules)</label>
+                                <input type="text" name="tags" placeholder="Ex: PHP, React, MySQL" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-medium">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 mb-6">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Technologies (Séparez par des virgules)</label>
+                            <input type="text" name="technologies" placeholder="Ex: React, Node.js, Docker" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-medium">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Questions pour le candidat (Une par ligne)</label>
+                            <textarea name="questions" rows="3" placeholder="Ex: Pourquoi voulez-vous ce stage ?" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none font-medium"></textarea>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Description succincte</label>
-                        <textarea name="description" required rows="3" placeholder="Quelles seront les missions du stagiaire ?" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none text-sm font-medium leading-relaxed"></textarea>
+                    <div class="pt-6 border-t border-gray-100">
+                        <div class="grid grid-cols-2 gap-6 mb-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Durée / Période</label>
+                                <input type="text" name="duree" placeholder="Ex: 3 mois" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-medium">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Statut individuel</label>
+                                <div class="relative custom-dropdown" id="formDropdownStatutModal">
+                                    <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all">
+                                        <span class="truncate text-sm font-bold">Active (Visible)</span>
+                                        <i class="fas fa-chevron-down text-[10px] text-gray-400"></i>
+                                    </button>
+                                    <input type="hidden" name="statut" value="active">
+                                    <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                        <div class="dropdown-item bg-gray-50/50 py-1.5 px-4 text-[9px] font-black uppercase text-gray-400 tracking-widest pointer-events-none">Options de Visibilité</div>
+                                        <div class="dropdown-item" data-value="active">Active (Visible)</div>
+                                        <div class="dropdown-item" data-value="archivee">Archivée (Masquée)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-1 space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Places</label>
+                                <input type="number" name="nombre_stagiaires" min="1" value="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-bold">
+                            </div>
+                            <div class="md:col-span-2 space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Description de l'offre</label>
+                                <textarea name="description" required rows="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none font-medium" placeholder="Décrivez les missions..."></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-[1.25rem] font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
@@ -190,3 +299,8 @@ check_auth('entreprise');
     </div>
 </body>
 </html>
+
+
+
+
+

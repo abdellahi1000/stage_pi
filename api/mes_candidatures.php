@@ -18,7 +18,76 @@ $user_id = $_SESSION['user_id'];
 $database = new Database();
 $db = $database->getConnection();
 
-// GET : Récupérer toutes les candidatures de l'utilisateur
+/**
+ * S'assure que les colonnes d'acceptation existent dans `candidatures`
+ * afin d'éviter les erreurs MySQL « Unknown column acceptance_message ».
+ */
+function ensureAcceptanceColumns($db)
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+
+    try {
+        $cols = [
+            'acceptance_message'    => "TEXT NULL",
+            'acceptance_date'       => "DATETIME NULL",
+            'company_contact_email' => "VARCHAR(255) NULL",
+            'company_contact_phone' => "VARCHAR(50) NULL",
+            'company_whatsapp'      => "VARCHAR(50) NULL",
+        ];
+
+        foreach ($cols as $col => $type) {
+            $check = $db->prepare("SHOW COLUMNS FROM candidatures LIKE :col");
+            $check->execute([':col' => $col]);
+            if ($check->rowCount() === 0) {
+                try {
+                    $db->exec("ALTER TABLE candidatures ADD COLUMN $col $type");
+                } catch (PDOException $e) {
+                    // Ne jamais bloquer l'API étudiant si l'ajout échoue
+                }
+            }
+        }
+        
+        // Ensure lm_specifique and reponses_questions columns
+        $check = $db->prepare("SHOW COLUMNS FROM candidatures LIKE 'lm_specifique'");
+        $check->execute();
+        if ($check->rowCount() === 0) {
+            try { $db->exec("ALTER TABLE candidatures ADD COLUMN lm_specifique VARCHAR(255) NULL AFTER cv_specifique"); } catch (PDOException $e) {}
+        }
+        
+        $check = $db->prepare("SHOW COLUMNS FROM candidatures LIKE 'reponses_questions'");
+        $check->execute();
+        if ($check->rowCount() === 0) {
+            try { $db->exec("ALTER TABLE candidatures ADD COLUMN reponses_questions TEXT NULL AFTER message_motivation"); } catch (PDOException $e) {}
+        }
+    } catch (Exception $e) {
+        // Filet de sécurité : on continue même si la vérification échoue
+    }
+}
+
+ensureAcceptanceColumns($db);
+
+/**
+ * Ensure company signature column exists in users (for acceptance display).
+ */
+function ensureCompanySignatureColumn($db)
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    try {
+        $check = $db->query("SHOW COLUMNS FROM users LIKE 'company_signature_path'");
+        if ($check->rowCount() === 0) {
+            $db->exec("ALTER TABLE users ADD COLUMN company_signature_path VARCHAR(255) NULL");
+        }
+    } catch (Exception $e) { /* non-blocking */ }
+}
+ensureCompanySignatureColumn($db);
+
+// GET : Récupérer toutes les candidatures de l'utilisateur (étudiant uniquement en pratique)
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $query = "SELECT 
@@ -27,12 +96,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     c.date_candidature,
                     c.statut,
                     c.message_motivation,
+                    c.acceptance_message,
+                    c.acceptance_date,
+                    c.company_contact_email,
+                    c.company_contact_phone,
+                    c.company_whatsapp,
                     o.titre,
                     o.entreprise,
                     o.localisation,
-                    o.type_contrat
+                    o.type_contrat,
+                    o.nombre_stagiaires,
+                    u.verified_status,
+                    u.company_signature_path
                   FROM candidatures c
                   INNER JOIN offres_stage o ON c.offre_id = o.id
+                  INNER JOIN users u ON o.user_id = u.id
                   WHERE c.user_id = :user_id
                   ORDER BY c.date_candidature DESC";
 
@@ -42,8 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        foreach ($candidatures as &$c) {
+            $c['statut'] = strtolower($c['statut']);
+        }
+
         // Mark as viewed by student (clearing notifications)
-        $update = $db->prepare("UPDATE candidatures SET vu_par_etudiant = 1 WHERE user_id = :user_id AND statut != 'en_attente' AND vu_par_etudiant = 0");
+        $update = $db->prepare("UPDATE candidatures SET vu_par_etudiant = 1 WHERE user_id = :user_id AND statut != 'pending' AND vu_par_etudiant = 0");
         $update->execute([':user_id' => $user_id]);
 
 
@@ -65,6 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $offre_id = isset($_POST['offre_id']) ? intval($_POST['offre_id']) : 0;
     $message_motivation = isset($_POST['message_motivation']) ? trim($_POST['message_motivation']) : '';
+    $cv_option = isset($_POST['cv_option']) ? $_POST['cv_option'] : 'profile'; // 'profile' or 'new'
+    $document_id = isset($_POST['document_id']) ? intval($_POST['document_id']) : 0;
+    
+    $lm_option = isset($_POST['lm_option']) ? $_POST['lm_option'] : 'profile';
+    $lm_id = isset($_POST['lm_id']) ? intval($_POST['lm_id']) : 0;
 
     if ($offre_id <= 0) {
         echo json_encode(['success' => false, 'message' => 'ID offre invalide']);
@@ -72,75 +159,198 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Vérifier si une candidature existe déjà
-        $check_query = "SELECT id FROM candidatures 
-                       WHERE user_id = :user_id AND offre_id = :offre_id";
-        $check_stmt = $db->prepare($check_query);
-        $check_stmt->bindParam(':user_id', $user_id);
-        $check_stmt->bindParam(':offre_id', $offre_id);
-        $check_stmt->execute();
+        // Obtenir l'entreprise (user_id de l'offre)
+        $offre_stmt = $db->prepare("SELECT user_id, entreprise FROM offres_stage WHERE id = :offre_id");
+        $offre_stmt->execute([':offre_id' => $offre_id]);
+        $offre = $offre_stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($check_stmt->rowCount() > 0) {
+        if (!$offre) {
+            echo json_encode(['success' => false, 'message' => 'L\'offre n\'existe pas']);
+            exit;
+        }
+
+        $entreprise_user_id = $offre['user_id'];
+
+        // rule check
+        // 1. Is the student already accepted somewhere?
+        $check_accepted = $db->prepare("SELECT id FROM candidatures WHERE user_id = :user_id AND statut = 'accepted'");
+        $check_accepted->execute([':user_id' => $user_id]);
+        if ($check_accepted->rowCount() > 0) {
             echo json_encode([
-                'success' => false, 
-                'message' => 'Vous avez déjà postulé à cette offre'
+                'success' => false,
+                'message' => 'Félicitations ! Vous avez déjà été accepté pour un stage. Vous ne pouvez plus postuler à d\'autres offres.'
             ]);
             exit;
         }
 
-        // Gestion du fichier CV
-        $cv_path = null;
-        if (isset($_FILES['cv_specifique']) && $_FILES['cv_specifique']['error'] === UPLOAD_ERR_OK) {
-            $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            $file_type = mime_content_type($_FILES['cv_specifique']['tmp_name']);
-            
-            if (!in_array($file_type, $allowed_types)) {
-                echo json_encode(['success' => false, 'message' => 'Format de fichier non supporté (PDF, DOC, DOCX uniquement)']);
+        // 2. Total active applications check (Max 3)
+        // Active means 'pending' (formerly 'en_attente'/'vue') or 'accepted'.
+        // Rejected or closed applications must NOT count.
+        $count_stmt = $db->prepare("SELECT COUNT(id) FROM candidatures WHERE user_id = :user_id AND statut IN ('pending', 'accepted')");
+        $count_stmt->execute([':user_id' => $user_id]);
+        $total_active = intval($count_stmt->fetchColumn());
+
+        if ($total_active >= 3) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Limite atteinte : Vous ne pouvez pas postuler à plus de 3 entreprises en même temps.'
+            ]);
+            exit;
+        }
+
+        // 3. One application per company PERMANENTLY (even if refused or closed by another acceptance)
+        // If they have any existing application, block them.
+        $check_company_query = "SELECT c.id FROM candidatures c
+                                INNER JOIN offres_stage o ON c.offre_id = o.id
+                                WHERE c.user_id = :user_id 
+                                AND o.user_id = :entreprise_user_id";
+        $check_company_stmt = $db->prepare($check_company_query);
+        $check_company_stmt->execute([':user_id' => $user_id, ':entreprise_user_id' => $entreprise_user_id]);
+
+        if ($check_company_stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Vous ne pouvez plus postuler à cette entreprise. Une décision a déjà été prise ou une candidature est en cours.'
+            ]);
+            exit;
+        }
+
+        // Gestion du CV
+        $cv_path_to_save = null;
+
+        if ($cv_option === 'new') {
+            if (!isset($_FILES['cv_file']) || $_FILES['cv_file']['error'] !== UPLOAD_ERR_OK) {
+                echo json_encode(['success' => false, 'message' => 'Veuillez uploader un CV valide (PDF, DOC, DOCX)']);
+                exit;
+            }
+            $ext = strtolower(pathinfo($_FILES['cv_file']['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['pdf', 'doc', 'docx'])) {
+                echo json_encode(['success' => false, 'message' => 'Format de CV non accepté. Utilisez PDF, DOC ou DOCX.']);
                 exit;
             }
 
-            // Créer le dossier s'il n'existe pas
-            $upload_dir = '../uploads/cvs/';
-            if (!file_exists($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
+            $upload_dir = __DIR__ . '/../uploads/cvs/';
+            if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+
+            $filename = 'cv_app_' . $user_id . '_' . time() . '.' . $ext;
+            if (move_uploaded_file($_FILES['cv_file']['tmp_name'], $upload_dir . $filename)) {
+                $cv_path_to_save = 'uploads/cvs/' . $filename;
+                
+                // Mettre à jour le profil si on souhaite le sauvegarder
+                if (isset($_POST['save_recent_cv']) && $_POST['save_recent_cv'] == '1') {
+                    // Update latest profile link
+                    $upd = $db->prepare("UPDATE profils SET cv_path = :cv WHERE user_id = :uid");
+                    $upd->execute([':cv' => $cv_path_to_save, ':uid' => $user_id]);
+                    
+                    // ALSO add to history table
+                    $hist = $db->prepare("INSERT INTO etudiant_documents (user_id, type, file_path, file_name) VALUES (:uid, 'cv', :path, :name)");
+                    $hist->execute([':uid' => $user_id, ':path' => $cv_path_to_save, ':name' => $_FILES['cv_file']['name']]);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'upload du fichier.']);
+                exit;
+            }
+        } else {
+            // Option 'profile' -> get from etudiant_documents if ID provided, else fallback to latest profil cv
+            if ($document_id > 0) {
+                $check_doc = $db->prepare("SELECT file_path FROM etudiant_documents WHERE id = :id AND user_id = :uid");
+                $check_doc->execute([':id' => $document_id, ':uid' => $user_id]);
+                $cv_path_to_save = $check_doc->fetchColumn();
+            }
+            
+            if (empty($cv_path_to_save)) {
+                // Last fallback: latest profile CV (backward compatibility)
+                $prof_stmt = $db->prepare("SELECT cv_path FROM profils WHERE user_id = :uid");
+                $prof_stmt->execute([':uid' => $user_id]);
+                $cv_path_to_save = $prof_stmt->fetchColumn();
             }
 
-            // Générer un nom unique
-            $extension = pathinfo($_FILES['cv_specifique']['name'], PATHINFO_EXTENSION);
-            $filename = 'cv_' . $user_id . '_' . $offre_id . '_' . time() . '.' . $extension;
-            $target_file = $upload_dir . $filename;
-
-            if (move_uploaded_file($_FILES['cv_specifique']['tmp_name'], $target_file)) {
-                $cv_path = 'uploads/cvs/' . $filename; // Chemin relatif pour la BDD
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Erreur lors du téléchargement du CV']);
+            if (empty($cv_path_to_save)) {
+                echo json_encode(['success' => false, 'message' => 'Veuillez sélectionner un CV de votre profil ou en uploader un nouveau.']);
                 exit;
             }
         }
 
+        // Gestion de la Lettre de Motivation
+        $lm_path_to_save = null;
+        if ($lm_option === 'new' && isset($_FILES['lm_file']) && $_FILES['lm_file']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['lm_file']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['pdf', 'doc', 'docx'])) {
+                $upload_dir = __DIR__ . '/../uploads/cvs/';
+                $filename = 'lm_app_' . $user_id . '_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['lm_file']['tmp_name'], $upload_dir . $filename)) {
+                    $lm_path_to_save = 'uploads/cvs/' . $filename;
+                    
+                    if (isset($_POST['save_recent_lm']) && $_POST['save_recent_lm'] == '1') {
+                        $upd = $db->prepare("UPDATE profils SET lettre_motivation_path = :lm WHERE user_id = :uid");
+                        $upd->execute([':lm' => $lm_path_to_save, ':uid' => $user_id]);
+                        
+                        $hist = $db->prepare("INSERT INTO etudiant_documents (user_id, type, file_path, file_name) VALUES (:uid, 'motivation', :path, :name)");
+                        $hist->execute([':uid' => $user_id, ':path' => $lm_path_to_save, ':name' => $_FILES['lm_file']['name']]);
+                    }
+                }
+            }
+        } elseif ($lm_option === 'profile') {
+            if ($lm_id > 0) {
+                $check_doc = $db->prepare("SELECT file_path FROM etudiant_documents WHERE id = :id AND user_id = :uid");
+                $check_doc->execute([':id' => $lm_id, ':uid' => $user_id]);
+                $lm_path_to_save = $check_doc->fetchColumn();
+            }
+            if (empty($lm_path_to_save)) {
+                $prof_stmt = $db->prepare("SELECT lettre_motivation_path FROM profils WHERE user_id = :uid");
+                $prof_stmt->execute([':uid' => $user_id]);
+                $lm_path_to_save = $prof_stmt->fetchColumn();
+            }
+        }
+
+        // Questions reponses: gather all reponses_questions[] into JSON
+        $reponses_questions = null;
+        if (isset($_POST['reponses_questions']) && is_array($_POST['reponses_questions'])) {
+            $reponses_questions = json_encode($_POST['reponses_questions'], JSON_UNESCAPED_UNICODE);
+        }
+
         // Insérer la nouvelle candidature
-        $insert_query = "INSERT INTO candidatures 
-                        (user_id, offre_id, message_motivation, cv_specifique, statut) 
-                        VALUES (:user_id, :offre_id, :message, :cv_path, 'en_attente')";
-        
+        $check_col = $db->query("SHOW COLUMNS FROM candidatures LIKE 'cv_specifique'");
+        $has_cv_col = ($check_col->rowCount() > 0);
+        $check_lm = $db->query("SHOW COLUMNS FROM candidatures LIKE 'lm_specifique'");
+        $has_lm_col = ($check_lm->rowCount() > 0);
+        $check_rep = $db->query("SHOW COLUMNS FROM candidatures LIKE 'reponses_questions'");
+        $has_rep_col = ($check_rep->rowCount() > 0);
+
+        $cols = "user_id, offre_id, message_motivation, statut";
+        $vals = ":user_id, :offre_id, :message, 'pending'";
+        $params = [
+            ':user_id' => $user_id,
+            ':offre_id' => $offre_id,
+            ':message' => $message_motivation
+        ];
+
+        if ($has_cv_col) { $cols .= ", cv_specifique"; $vals .= ", :cv_path"; $params[':cv_path'] = $cv_path_to_save; }
+        if ($has_lm_col) { $cols .= ", lm_specifique"; $vals .= ", :lm_path"; $params[':lm_path'] = $lm_path_to_save; }
+        if ($has_rep_col) { $cols .= ", reponses_questions"; $vals .= ", :rep"; $params[':rep'] = $reponses_questions; }
+
+        $insert_query = "INSERT INTO candidatures ($cols) VALUES ($vals)";
         $insert_stmt = $db->prepare($insert_query);
-        $insert_stmt->bindParam(':user_id', $user_id);
-        $insert_stmt->bindParam(':offre_id', $offre_id);
-        $insert_stmt->bindParam(':message', $message_motivation);
-        $insert_stmt->bindParam(':cv_path', $cv_path);
-        $insert_stmt->execute();
+        $insert_stmt->execute($params);
 
         echo json_encode([
             'success' => true,
-            'message' => 'Candidature envoyée avec succès',
+            'message' => 'Candidature envoyée avec succès ! L\'entreprise a été notifiée.',
             'candidature_id' => $db->lastInsertId()
         ]);
 
     } catch(PDOException $e) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Erreur : ' . $e->getMessage()
-        ]);
+        if ($e->getCode() == '23000' || (isset($e->errorInfo[1]) && $e->errorInfo[1] == 1062)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vous avez déjà envoyé une candidature à cette entreprise (ou cette offre précise).'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erreur technique : ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

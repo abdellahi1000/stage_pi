@@ -31,14 +31,16 @@
 .offre-card {
   background: white;
   border-radius: 12px;
-  padding: 25px;
+  padding: 16px 20px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border-top: 4px solid var(--secondary-color);
+  cursor: pointer;
 }
 
 .offre-card:hover {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 .offre-card h3 {
@@ -96,6 +98,17 @@
   color: #4f46e5;
 }
 
+/* Professional button styling */
+.btn-postuler {
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+.btn-postuler:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
 /* Modal Form Styles */
 .modal {
   display: none;
@@ -125,6 +138,7 @@
     transform: translateY(-50px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;

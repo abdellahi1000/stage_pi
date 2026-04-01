@@ -1,6 +1,18 @@
 <?php 
 require_once '../include/session.php';
+require_once '../include/db_connect.php';
+require_once '../include/lookups.php';
 check_auth('etudiant');
+
+$db = (new Database())->getConnection();
+$stmt = $db->prepare("SELECT cv_path FROM profils WHERE user_id = :uid");
+$stmt->execute([':uid' => $_SESSION['user_id']]);
+$cv_path = $stmt->fetchColumn();
+$has_cv = !empty($cv_path);
+
+// Lookups for filters
+$sm_cities = sm_get_cities();
+$sm_contract_types = sm_get_contract_types();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -15,16 +27,16 @@ check_auth('etudiant');
     <link rel="stylesheet" href="../css/offres.css"/>
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="../js/global.js" defer></script>
-    <script src="../js/offres.js" defer></script>
+    <script src="../js/global.js?v=<?= time() ?>" defer></script>
+    <script src="../js/offres.js?v=<?= time() ?>" defer></script>
 </head>
-<body class="bg-gray-50">
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
     <div class="flex">
         <?php include '../include/sidebar.php'; ?>
 
-        <main class="flex-1 min-h-screen overflow-y-auto md:ml-64">
+        <main class="flex-1 min-h-screen overflow-y-auto md:ml-64 border-t-4 border-blue-600">
             <!-- Mobile Toggle -->
-            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30 px-6">
                 <div class="flex items-center space-x-2">
                     <span class="font-bold text-blue-600">StageMatch</span>
                 </div>
@@ -51,8 +63,11 @@ check_auth('etudiant');
                         </button>
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
                             <div class="dropdown-item" data-value="">Tout</div>
-                            <div class="dropdown-item" data-value="Nouakchott">Nouakchott</div>
-                            <div class="dropdown-item" data-value="Nouadhibou">Nouadhibou</div>
+                            <?php foreach ($sm_cities as $city): ?>
+                                <div class="dropdown-item" data-value="<?php echo htmlspecialchars($city['code']); ?>">
+                                    <?php echo htmlspecialchars($city['label']); ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
 
@@ -64,8 +79,11 @@ check_auth('etudiant');
                         </button>
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
                             <div class="dropdown-item" data-value="">Tout</div>
-                            <div class="dropdown-item" data-value="Stage">Stage</div>
-                            <div class="dropdown-item" data-value="Alternance">Alternance</div>
+                            <?php foreach ($sm_contract_types as $ct): ?>
+                                <div class="dropdown-item" data-value="<?php echo htmlspecialchars($ct['code']); ?>">
+                                    <?php echo htmlspecialchars($ct['label']); ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
@@ -80,33 +98,212 @@ check_auth('etudiant');
         </main>
     </div>
     <!-- Modal Postuler -->
-    <div id="modalPostuler" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl transform scale-95 transition-all duration-300">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-gray-900">Postuler</h2>
-                <button id="closePostuler" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    <div id="modalPostuler" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white border-t-8 border-blue-600 rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl transform scale-95 transition-all duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                    <i class="fas fa-paper-plane text-blue-600"></i> Postuler
+                </h2>
+                <button id="closePostuler" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <form id="formPostuler" class="space-y-6">
+
+            <form id="formPostuler" class="space-y-8">
                 <input type="hidden" name="offre_id" id="postulerOffreId">
-                <div class="space-y-2">
-                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Message de motivation</label>
-                    <textarea name="message_motivation" required rows="5" placeholder="Pourquoi souhaitez-vous rejoindre cette entreprise ?" class="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none"></textarea>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Télécharger mon CV</label>
-                    <div class="relative">
-                        <input type="file" name="cv_specifique" id="cvSpecifique" accept=".pdf,.doc,.docx" class="hidden" onchange="document.getElementById('fileName').textContent = this.files[0] ? this.files[0].name : 'Aucun fichier choisi'">
-                        <label for="cvSpecifique" class="w-full flex items-center justify-between px-6 py-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:bg-white hover:border-blue-500 transition-all">
-                            <span id="fileName" class="text-gray-500 font-medium truncate">Choisir un fichier (PDF, DOC, DOCX)</span>
-                            <i class="fas fa-cloud-upload-alt text-blue-500 text-xl"></i>
-                        </label>
+                <input type="hidden" name="document_id" id="postulerDocumentId">
+                
+                <!-- Questions Section (Dynamic) -->
+                <div id="offer_questions_container" class="space-y-6 pt-6 border-t border-gray-50 hidden">
+                    <label class="text-[10px] font-black text-blue-600 uppercase tracking-widest border-b pb-3 block w-full border-blue-100 flex items-center gap-2">
+                        <i class="fas fa-question-circle"></i> Questions de l'employeur
+                    </label>
+                    <div id="questions_list" class="space-y-4">
+                        <!-- Dynamic -->
                     </div>
                 </div>
-                <button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all">Envoyer ma candidature</button>
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-comment-dots"></i> Message de motivation
+                    </label>
+                    <textarea name="message_motivation" rows="3" placeholder="Pourquoi souhaitez-vous rejoindre cette entreprise ?" class="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none text-sm font-medium" required></textarea>
+                </div>
+
+                <div class="space-y-6">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b pb-3 block w-full border-gray-100 flex items-center justify-between">
+                        <span><i class="fas fa-file-pdf"></i> Curriculum Vitæ (Obligatoire)</span>
+                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px]">DOCUMENTS DU PROFIL</span>
+                    </label>
+                    
+                    <!-- Existing CVs from Profile -->
+                    <div id="application_cv_selector" class="space-y-3">
+                        <div class="py-10 text-center border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50/30">
+                            <i class="fas fa-spinner fa-spin text-gray-200 text-xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative py-2">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-gray-100"></div>
+                        </div>
+                        <div class="relative flex justify-center text-[10px] uppercase font-black text-gray-300">
+                            <span class="bg-white px-4">Ou</span>
+                        </div>
+                    </div>
+
+                    <!-- New Upload Option -->
+                    <div class="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100/50 group transition-all">
+                        <label class="flex items-center gap-4 cursor-pointer">
+                            <input type="radio" name="cv_option" value="new" class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500 checked:bg-blue-600 transition-all">
+                            <div class="flex-1">
+                                <p class="text-sm font-black text-blue-900">Importer un nouveau CV externe</p>
+                                <p class="text-[9px] text-blue-400 font-black uppercase tracking-widest mt-0.5">Fichier unique pour cette offre</p>
+                            </div>
+                        </label>
+                        
+                        <div id="new_cv_upload_container" class="mt-6 hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                            <input type="file" name="cv_file" id="cv_file_input" accept=".pdf,.doc,.docx" class="hidden">
+                            <button type="button" onclick="document.getElementById('cv_file_input').click()" class="w-full flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-blue-200 rounded-2xl bg-white text-blue-300 hover:text-blue-600 hover:border-blue-600 transition-all group/btn">
+                                <i class="fas fa-cloud-upload-alt text-2xl group-hover/btn:scale-110 transition-transform"></i>
+                                <span id="cv_file_name_display" class="text-[10px] font-black uppercase tracking-widest">Choisir un fichier</span>
+                            </button>
+                            
+                            <label class="flex items-center gap-3 cursor-pointer mt-4 group/box">
+                                <div class="relative">
+                                    <input type="checkbox" name="save_recent_cv" value="1" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 transition-all">
+                                </div>
+                                <span class="text-[10px] font-black text-gray-400 group-hover/box:text-blue-600 uppercase tracking-widest transition-colors">Ajouter ce CV à mon dossier profil</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW Lettre de Motivation Section -->
+                <div class="space-y-6 pt-6 border-t border-gray-50">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b pb-3 block w-full border-gray-100 flex items-center justify-between">
+                        <span><i class="fas fa-file-contract"></i> Lettre de motivation (Facultatif)</span>
+                        <span class="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-[9px]">DOCUMENTS DU PROFIL</span>
+                    </label>
+                    
+                    <div id="application_lm_selector" class="space-y-3">
+                        <div class="py-10 text-center border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50/30">
+                            <i class="fas fa-spinner fa-spin text-gray-200 text-xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative py-2">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-gray-100"></div>
+                        </div>
+                        <div class="relative flex justify-center text-[10px] uppercase font-black text-gray-300">
+                            <span class="bg-white px-4">Ou</span>
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-purple-50/50 rounded-[2rem] border border-purple-100/50 group transition-all">
+                        <label class="flex items-center gap-4 cursor-pointer">
+                            <input type="radio" name="lm_option" value="new" class="w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-500 checked:bg-purple-600 transition-all">
+                            <div class="flex-1">
+                                <p class="text-sm font-black text-purple-900">Importer une nouvelle lettre</p>
+                                <p class="text-[9px] text-purple-400 font-black uppercase tracking-widest mt-0.5">Fichier unique pour cette offre</p>
+                            </div>
+                        </label>
+                        
+                        <div id="new_lm_upload_container" class="mt-6 hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                            <input type="file" name="lm_file" id="lm_file_input" accept=".pdf,.doc,.docx" class="hidden">
+                            <button type="button" onclick="document.getElementById('lm_file_input').click()" class="w-full flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-purple-200 rounded-2xl bg-white text-purple-300 hover:text-purple-600 hover:border-purple-600 transition-all group/btn">
+                                <i class="fas fa-cloud-upload-alt text-2xl group-hover/btn:scale-110 transition-transform"></i>
+                                <span id="lm_file_name_display" class="text-[10px] font-black uppercase tracking-widest">Choisir un fichier</span>
+                            </button>
+                            
+                            <label class="flex items-center gap-3 cursor-pointer mt-4 group/box">
+                                <div class="relative">
+                                    <input type="checkbox" name="save_recent_lm" value="1" class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 transition-all">
+                                </div>
+                                <span class="text-[10px] font-black text-gray-400 group-hover/box:text-purple-600 uppercase tracking-widest transition-colors">Ajouter à mon dossier profil</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="lm_id" id="postulerLmId">
+
+                <div class="pt-4">
+                    <button type="submit" id="btnSubmitApplication" class="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 hover:bg-blue-700 hover:-translate-y-1 active:scale-95 transition-all duration-300 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed">
+                        Envoyer ma candidature
+                    </button>
+                    <p class="text-[9px] text-center text-gray-400 font-bold uppercase tracking-widest mt-4">
+                        <i class="fas fa-shield-alt mr-1"></i> Vos documents sont transmis en toute sécurité
+                    </p>
+                </div>
             </form>
         </div>
     </div>
+
+    <!-- Company Profile Modal -->
+    <div id="modalCompanyProfile" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl transform scale-95 transition-all duration-300 custom-scrollbar relative">
+            <!-- Close Button -->
+            <button onclick="closeCompanyProfile()" class="absolute top-6 right-6 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all group">
+                <i class="fas fa-times text-lg group-hover:rotate-90 transition-transform"></i>
+            </button>
+
+            <!-- Modal Content -->
+            <div id="companyProfileContent" class="p-0">
+                <div class="flex justify-center items-center py-20">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                    <p class="text-gray-500 font-medium ml-4">Chargement des informations...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Phones List Modal -->
+    <div id="modalPhonesList" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl transform scale-95 transition-all duration-300 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 transition-all group-hover:scale-150"></div>
+            <div class="relative z-10 text-center">
+                <div class="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-blue-200">
+                    <i class="fas fa-phone-alt text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-900 mb-2">Contacts Téléphoniques</h3>
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Tous les numéros</p>
+                
+                <div id="phones_list_container" class="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar text-left pr-2">
+                    <!-- Dynamic from JS -->
+                </div>
+                
+                <button onclick="closeContactModal('phonesList')" class="w-full py-4 rounded-2xl bg-gray-100 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emails List Modal -->
+    <div id="modalEmailsList" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl transform scale-95 transition-all duration-300 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full -mr-16 -mt-16 transition-all group-hover:scale-150"></div>
+            <div class="relative z-10 text-center">
+                <div class="w-20 h-20 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-3xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-purple-200">
+                    <i class="fas fa-envelope text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-900 mb-2">Emails de Contact</h3>
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Toutes les adresses</p>
+                
+                <div id="emails_list_container" class="space-y-3 mb-8 max-h-60 overflow-y-auto custom-scrollbar text-left pr-2">
+                    <!-- Dynamic from JS -->
+                </div>
+                
+                <button onclick="closeContactModal('emailsList')" class="w-full py-4 rounded-2xl bg-gray-100 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
-
 

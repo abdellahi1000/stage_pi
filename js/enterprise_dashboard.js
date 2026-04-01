@@ -4,16 +4,22 @@ document.addEventListener("DOMContentLoaded", () => {
   loadRecentCandidatures();
 
   function loadStats() {
-    fetch("../api/user.php?action=enterprise_stats")
+    fetch("../api/enterprise_dashboard.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          document.getElementById("stat-offres").textContent =
-            data.stats.offres_actives || 0;
-          document.getElementById("stat-candidats").textContent =
-            data.stats.total_candidatures || 0;
-          document.getElementById("stat-recrutements").textContent =
-            data.stats.recrutements || 0;
+          document.getElementById("stat-offres").textContent = data.stats.active_offers || 0;
+          document.getElementById("stat-candidats").textContent = data.stats.total_applications || 0;
+          document.getElementById("stat-recrutements").textContent = data.stats.accepted || 0;
+          if (document.getElementById("stat-messages")) {
+            const count = data.stats.total_messages || 0;
+            document.getElementById("stat-messages").textContent = count;
+            const notifDot = document.getElementById("notifDot");
+            if (notifDot) {
+              if (count > 0) notifDot.classList.remove("hidden");
+              else notifDot.classList.add("hidden");
+            }
+          }
         }
       })
       .catch((err) => console.error("Erreur stats:", err));
@@ -40,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="text-right">
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">${new Date(c.date_candidature).toLocaleDateString()}</p>
-                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase">${c.statut}</span>
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase">${c.statut === 'pending' ? 'En attente' : (c.statut === 'accepted' ? 'Accepté' : c.statut)}</span>
                             </div>
                         </div>
                     `,

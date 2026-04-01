@@ -15,16 +15,16 @@ check_auth('entreprise');
     <link rel="stylesheet" href="../css/enterprise_candidatures.css"/>
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="../js/global.js" defer></script>
-    <script src="../js/enterprise_candidatures.js" defer></script>
+    <script src="../js/global.js?v=<?= time() ?>" defer></script>
+    <script src="../js/enterprise_candidatures.js?v=<?= time() ?>" defer></script>
 </head>
-<body class="bg-gray-50">
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
     <div class="flex">
         <?php include '../include/sidebar.php'; ?>
 
         <main class="flex-1 min-h-screen overflow-y-auto md:ml-64">
             <!-- Mobile Toggle -->
-            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30 px-6">
                 <div class="flex items-center space-x-2">
                     <span class="font-bold text-blue-600">StageMatch</span>
                 </div>
@@ -60,7 +60,7 @@ check_auth('entreprise');
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
                             <div class="dropdown-item" data-value="">Tous les statuts</div>
                             <div class="dropdown-item" data-value="en_attente">En attente</div>
-                            <div class="dropdown-item" data-value="vue">Consultée</div>
+                            <div class="dropdown-item" data-value="vue">vue</div>
                             <div class="dropdown-item" data-value="accepte">Acceptée</div>
                             <div class="dropdown-item" data-value="refuse">Refusée</div>
                         </div>

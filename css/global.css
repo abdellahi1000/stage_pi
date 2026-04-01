@@ -52,11 +52,9 @@ select,
 }
 
 .btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--secondary-color) 0%,
-    var(--accent-color) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--secondary-color) 0%,
+      var(--accent-color) 100%);
   color: var(--white);
 }
 
@@ -93,7 +91,7 @@ select,
   font-size: 18px;
 }
 
-.input-group input:focus + i {
+.input-group input:focus+i {
   color: var(--secondary-color);
 }
 
@@ -134,6 +132,7 @@ select,
     transform: translateX(-50%) translateY(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
@@ -145,8 +144,241 @@ select,
     transform: translateX(-50%) translateY(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(-50%) translateY(-100%);
     opacity: 0;
   }
+}
+
+/* --- STEP 1 & 2: Responsive Foundation --- */
+html,
+body {
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* --- STEP 8: Images and Containers --- */
+img,
+video,
+canvas {
+  max-width: 100% !important;
+  height: auto;
+  display: block;
+}
+
+container,
+.max-w-5xl,
+.max-w-7xl {
+  width: 90% !important;
+  max-width: 100% !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- STEP 7: Text and Buttons (Desktop Base) --- */
+.btn {
+  width: auto;
+  min-width: 120px;
+}
+
+/* --- STEP 4: Breakpoints --- */
+
+/* MOBILE DEVICES (< 768px) */
+@media (max-width: 768px) {
+
+  /* STEP 7: Font and Buttons */
+  body {
+    font-size: 14px;
+  }
+
+  .btn {
+    width: 100% !important;
+    padding: 15px !important;
+  }
+
+  /* STEP 5: Sidebar Mobile */
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px !important;
+    position: fixed;
+    z-index: 1000 !important;
+    /* Professional Layering */
+    transition: transform 0.3s ease !important;
+    /* Smooth sliding */
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  /* STEP 3: Flexible Layout */
+  .md\:ml-64 {
+    margin-left: 0 !important;
+  }
+
+  /* STEP 6: Dashboard Cards - 1 per row */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Spacing */
+  .px-6,
+  .px-8,
+  .px-10 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .py-10,
+  .py-12 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .mb-16 {
+    margin-bottom: 2rem !important;
+  }
+}
+
+/* Grid Utilities */
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .grid-2-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TOUCH FRIENDLY TARGETS */
+input,
+select,
+textarea,
+button {
+  min-height: 44px;
+}
+
+/* TABLET DEVICES (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  /* STEP 6: Dashboard Cards - 2 per row */
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .sidebar {
+    width: 240px;
+  }
+
+  .md\:ml-64 {
+    margin-left: 240px !important;
+  }
+}
+
+/* DESKTOP DEVICES (> 1024px) */
+@media (min-width: 1025px) {
+  .sidebar {
+    transform: translateX(0) !important;
+  }
+
+  /* STEP 6: Dashboard Cards - 3 per row (default) */
+}
+
+/* --- STEP 9: Navigation Touch Friendly --- */
+nav a {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  /* Touch target size */
+}
+
+/* --- STEP 5: Sidebar Layout & Accents --- */
+.sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease !important;
+}
+
+.sidebar-nav-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar-nav-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* Dark Mode Filter */
+html.dark-mode {
+  filter: invert(0.92) hue-rotate(180deg);
+  background-color: #111;
+}
+
+html.dark-mode img,
+html.dark-mode video,
+html.dark-mode .sidebar {
+  filter: invert(1.08) hue-rotate(180deg);
+}
+
+/* --- STEP 10: Utility & Component Refinements --- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Settings Tabs Mobile refinements */
+@media (max-width: 768px) {
+  .settings-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.75rem 1rem !important;
+    font-size: 11px !important;
+  }
+
+  .settings-tab.active {
+    background-color: white !important;
+    color: #2563eb !important;
+    /* blue-600 */
+    border-bottom: 3px solid #2563eb !important;
+    border-left: none !important;
+  }
+
+  #settingsSidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Base Modal Shadow & Glassmorphism */
+.modal-glass {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }

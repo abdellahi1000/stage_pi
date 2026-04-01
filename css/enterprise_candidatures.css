@@ -1,0 +1,23 @@
+/* css/enterprise_candidatures.css */
+
+.closed-row {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    background-color: #f9fafb !important;
+}
+
+.closed-row .btn-locked {
+    background-color: #e5e7eb !important;
+    color: #9ca3af !important;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown .dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}

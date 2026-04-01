@@ -17,13 +17,13 @@ check_auth('etudiant');
     <script src="../js/global.js" defer></script>
     <script src="../js/dashboards.js" defer></script>
 </head>
-<body class="bg-gray-50">
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
     <div class="flex">
         <?php include '../include/sidebar.php'; ?>
 
         <main class="flex-1 min-h-screen overflow-y-auto bg-gray-50 md:ml-64">
             <!-- Mobile Toggle -->
-            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30 px-6">
                 <div class="flex items-center space-x-2">
                     <span class="font-bold text-blue-600">StageMatch</span>
                 </div>
@@ -64,7 +64,7 @@ check_auth('etudiant');
                         </div>
                     </div>
                     <!-- Stat Card 2 -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-purple-500 transition-all duration-300">
+                    <a href="offres.php?favoris=1" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-purple-500 hover:shadow-md cursor-pointer transition-all duration-300">
                         <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
                             <i class="fas fa-heart text-xl"></i>
                         </div>
@@ -72,9 +72,12 @@ check_auth('etudiant');
                             <p class="text-3xl font-black text-gray-900" id="stat-favorites">0</p>
                             <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Favoris</p>
                         </div>
-                    </div>
+                    </a>
                     <!-- Stat Card 3 -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-indigo-500 transition-all duration-300">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-indigo-500 transition-all duration-300 relative">
+                        <!-- Notification Dot -->
+                        <div id="notifDot" class="absolute top-4 right-4 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white shadow-sm hidden"></div>
+                        
                         <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                             <i class="fas fa-comment-dots text-xl"></i>
                         </div>
@@ -168,3 +171,7 @@ check_auth('etudiant');
     </div>
 </body>
 </html>
+
+
+
+

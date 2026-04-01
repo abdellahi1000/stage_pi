@@ -14,13 +14,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
       userTypeInput.value = newType;
 
+      function uppercaseInput(e) {
+        e.target.value = e.target.value.toUpperCase();
+      }
+
       // Update UI with classes and text
       if (newType === "etudiant") {
         selectedTypeIcon.className = "fas fa-user-graduate";
         selectedTypeText.textContent = "Compte Étudiant";
+
+        document.getElementById('nomIcon').className = "fas fa-user";
+        document.getElementById('nom').placeholder = "Nom";
+        document.getElementById('nom').removeEventListener("input", uppercaseInput);
+        document.getElementById('prenomGroup').style.display = "block";
+        document.getElementById('prenom').required = true;
+        document.getElementById('nameFields').style.gridTemplateColumns = "1fr 1fr";
+
+        document.getElementById('enterpriseFields').style.display = "none";
+        document.getElementById('enterpriseWarningMsg').style.display = "none";
+        const entInputs = document.querySelectorAll('#enterpriseFields input, #enterpriseFields select');
+        entInputs.forEach(el => el.required = false);
       } else {
         selectedTypeIcon.className = "fas fa-building";
         selectedTypeText.textContent = "Compte Entreprise";
+
+        document.getElementById('nomIcon').className = "fas fa-building";
+        document.getElementById('nom').placeholder = "Nom de l'entreprise";
+        document.getElementById('nom').addEventListener("input", uppercaseInput);
+        document.getElementById('prenomGroup').style.display = "none";
+        document.getElementById('prenom').required = false;
+        document.getElementById('prenom').value = "";
+        document.getElementById('nameFields').style.gridTemplateColumns = "1fr";
+
+        document.getElementById('enterpriseFields').style.display = "block";
+        document.getElementById('enterpriseWarningMsg').style.display = "block";
+        const entInputs = document.querySelectorAll('#enterpriseFields input, #enterpriseFields select');
+        entInputs.forEach(el => el.required = true);
       }
     });
   }
@@ -47,15 +76,17 @@ document.addEventListener("DOMContentLoaded", () => {
       submitBtn.disabled = true;
       submitBtn.textContent = "Inscription en cours...";
 
-      const formData = new FormData();
-      formData.append("action", "register");
-      formData.append("nom", nom);
-      formData.append("prenom", prenom);
-      formData.append("email", email);
-      formData.append("telephone", telephone);
-      formData.append("password", password);
-      formData.append("password_confirm", passwordConfirm);
-      formData.append("type_compte", userType);
+      const formData = new FormData(signupForm);
+      // fallback for fields without name attribute but needed
+      formData.set("action", "register");
+      formData.set("nom", nom);
+      if (prenom) formData.set("prenom", prenom);
+      else formData.set("prenom", "");
+      formData.set("email", email);
+      formData.set("telephone", telephone);
+      formData.set("password", password);
+      formData.set("password_confirm", passwordConfirm);
+      formData.set("type_compte", userType);
 
       fetch("include/auth.php", {
         method: "POST",

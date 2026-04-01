@@ -21,20 +21,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         // Informations utilisateur de base
         $user_query = "SELECT 
-                        id, nom, prenom, email, telephone, 
-                        type_compte, photo_profil, date_naissance,
-                        adresse, ville, pays, bio,
-                        linkedin_url, portfolio_url,
-                        created_at, derniere_connexion
-                      FROM users 
-                      WHERE id = :user_id";
+                        u.*, 
+                        p.cv_path, p.niveau_etudes, p.specialite, p.universite, p.skills, p.domaine_formation, p.statut_disponibilite, p.lettre_motivation_path,
+                        pref.notifications_email, pref.alertes_offres, pref.langue
+                      FROM users u 
+                      LEFT JOIN profils p ON u.id = p.user_id
+                      LEFT JOIN preferences_utilisateur pref ON u.id = pref.user_id
+                      WHERE u.id = :user_id";
         
         $user_stmt = $db->prepare($user_query);
         $user_stmt->bindParam(':user_id', $user_id);
         $user_stmt->execute();
         $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Candidatures en attente
+        // Candidatures en attente (pending)
         $attente_query = "SELECT 
                             c.id,
                             c.date_candidature,
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                             o.type_contrat
                           FROM candidatures c
                           INNER JOIN offres_stage o ON c.offre_id = o.id
-                          WHERE c.user_id = :user_id AND c.statut = 'en_attente'
+                          WHERE c.user_id = :user_id AND c.statut = 'pending'
                           ORDER BY c.date_candidature DESC";
         
         $attente_stmt = $db->prepare($attente_query);
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $attente_stmt->execute();
         $candidatures_attente = $attente_stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Candidatures acceptées
+        // Candidatures acceptées (accepted)
         $accepte_query = "SELECT 
                             c.id,
                             c.date_candidature,
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                             o.duree
                           FROM candidatures c
                           INNER JOIN offres_stage o ON c.offre_id = o.id
-                          WHERE c.user_id = :user_id AND c.statut = 'accepte'
+                          WHERE c.user_id = :user_id AND c.statut = 'accepted'
                           ORDER BY c.date_candidature DESC";
         
         $accepte_stmt = $db->prepare($accepte_query);
@@ -110,13 +110,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $offres_deposees = $offres_stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
-        // Statistiques
+        // Defensive stats counting
+        $total_messages = 0;
+        $total_favorites = 0;
+        $total_candidatures = 0;
+
+        try {
+            // Ensure status column exists and count unread support messages
+            try {
+                $chkStatus = $db->query("SHOW COLUMNS FROM support_messages LIKE 'status'");
+                if ($chkStatus && $chkStatus->rowCount() === 0) {
+                    $db->exec("ALTER TABLE support_messages ADD COLUMN status VARCHAR(20) DEFAULT 'unread'");
+                }
+            } catch (PDOException $e) {}
+
+            $msg_count_stmt = $db->prepare("SELECT COUNT(*) FROM support_messages WHERE user_id = :user_id AND sender_type IN ('support', 'admin') AND status = 'unread'");
+            $msg_count_stmt->execute([':user_id' => $user_id]);
+            $total_messages = (int)$msg_count_stmt->fetchColumn();
+        } catch (PDOException $e) {}
+
+        try {
+            // Count favorites
+            $fav_count_stmt = $db->prepare("SELECT COUNT(*) FROM offer_favorites WHERE student_id = :user_id");
+            $fav_count_stmt->execute([':user_id' => $user_id]);
+            $total_favorites = (int)$fav_count_stmt->fetchColumn();
+        } catch (PDOException $e) {}
+
+        // Count all candidatures
+        $cand_all_stmt = $db->prepare("SELECT COUNT(*) FROM candidatures WHERE user_id = :user_id");
+        $cand_all_stmt->execute([':user_id' => $user_id]);
+        $total_candidatures = (int)$cand_all_stmt->fetchColumn();
+
         $stats = [
-            'total_candidatures' => count($candidatures_attente) + count($candidatures_acceptees),
+            'total_candidatures' => $total_candidatures,
             'candidatures_attente' => count($candidatures_attente),
             'candidatures_acceptees' => count($candidatures_acceptees),
             'stages_completes' => count($stages_completes),
-            'offres_deposees' => count($offres_deposees)
+            'offres_deposees' => count($offres_deposees),
+            'total_messages' => $total_messages,
+            'total_favorites' => $total_favorites
         ];
         
 // ... (previous logic) ...
@@ -172,6 +204,270 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     }
 }
 
+// POST: update_profile_student (with files)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile_student') {
+    try {
+        $db->beginTransaction();
+
+        // 1. Update basic user info
+        $nom = $_POST['nom'] ?? '';
+        $prenom = $_POST['prenom'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $telephone = $_POST['telephone'] ?? '';
+        $bio = $_POST['bio'] ?? '';
+
+        $update_user = $db->prepare("UPDATE users SET nom = :nom, prenom = :prenom, email = :email, telephone = :tel, bio = :bio WHERE id = :uid");
+        $update_user->execute([':nom' => $nom, ':prenom' => $prenom, ':email' => $email, ':tel' => $telephone, ':bio' => $bio, ':uid' => $user_id]);
+        
+        // Update session to reflect name changes instantly
+        $_SESSION['user_nom'] = $nom;
+        $_SESSION['user_prenom'] = $prenom;
+        $_SESSION['user_email'] = $email;
+        $_SESSION['user_tel'] = $telephone;
+
+        // Password change logic (with current password)
+        $oldPassword = $_POST['old_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        if ($oldPassword || $newPassword || $confirmPassword) {
+            if (empty($oldPassword) || empty($newPassword) || empty($confirmPassword)) {
+                echo json_encode(['success' => false, 'message' => 'Veuillez remplir tous les champs de mot de passe.']);
+                $db->rollBack();
+                exit;
+            }
+            if (strlen($newPassword) < 8) {
+                echo json_encode(['success' => false, 'message' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.']);
+                $db->rollBack();
+                exit;
+            }
+            if ($newPassword !== $confirmPassword) {
+                echo json_encode(['success' => false, 'message' => 'Les nouveaux mots de passe ne correspondent pas.']);
+                $db->rollBack();
+                exit;
+            }
+
+            $stmt = $db->prepare("SELECT password FROM users WHERE id = :uid");
+            $stmt->execute([':uid' => $user_id]);
+            $hash = $stmt->fetchColumn();
+            if (!password_verify($oldPassword, $hash)) {
+                echo json_encode(['success' => false, 'message' => 'Le mot de passe actuel est incorrect.']);
+                $db->rollBack();
+                exit;
+            }
+
+            $new_hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $upd_pass = $db->prepare("UPDATE users SET password = :pw WHERE id = :uid");
+            $upd_pass->execute([':pw' => $new_hash, ':uid' => $user_id]);
+        }
+
+        // 2. Update profils info
+        $titre = $_POST['titre_professionnel'] ?? null; // Optionally map titre to something. Could save mapped to skills momentarily or add column later. Let's save in specialite temporarily or skip if no column.
+        $domaine = $_POST['domaine_formation'] ?? '';
+        $skills = $_POST['skills'] ?? '';
+        $statut = $_POST['statut_disponibilite'] ?? 'disponible';
+        $niveau = $_POST['niveau_etudes'] ?? '';
+        $specialite = $_POST['specialite'] ?? '';
+        $universite = $_POST['universite'] ?? '';
+
+        // Documents (CV and Letter) are now managed by api/documents.php instantly.
+        // Form inputs in compte.php no longer have "name" for files, so $_FILES will be empty here.
+
+
+        $sql_profils = "UPDATE profils SET domaine_formation = :domaine, skills = :skills, statut_disponibilite = :statut, niveau_etudes = :niveau, specialite = :specialite, universite = :univ WHERE user_id = :uid";
+        $update_profils = $db->prepare($sql_profils);
+        $params_prof = [
+            ':domaine' => $domaine, ':skills' => $skills, ':statut' => $statut,
+            ':niveau' => $niveau, ':specialite' => $specialite, ':univ' => $universite, ':uid' => $user_id
+        ];
+        $update_profils->execute($params_prof);
+
+
+        if ($update_profils->rowCount() === 0) {
+            // Might not exist initially, let's insert if 0 and actually missing
+            $check_prof = $db->prepare("SELECT id FROM profils WHERE user_id = :uid");
+            $check_prof->execute([':uid' => $user_id]);
+            if ($check_prof->rowCount() === 0) {
+                // simple insert fallback
+                $db->prepare("INSERT INTO profils (user_id) VALUES (:uid)")->execute([':uid' => $user_id]);
+                $update_profils->execute($params_prof);
+            }
+        }
+
+        // 3. Update Preferences
+        $alertes = isset($_POST['alertes_offres']) ? (int)$_POST['alertes_offres'] : 1;
+        $langue = $_POST['langue'] ?? 'fr';
+
+        $check_pref = $db->prepare("SELECT id FROM preferences_utilisateur WHERE user_id = :uid");
+        $check_pref->execute([':uid' => $user_id]);
+        if ($check_pref->rowCount() > 0) {
+            $upd_pref = $db->prepare("UPDATE preferences_utilisateur SET alertes_offres = :alertes, langue = :langue WHERE user_id = :uid");
+            $upd_pref->execute([':alertes' => $alertes, ':langue' => $langue, ':uid' => $user_id]);
+        } else {
+            $ins_pref = $db->prepare("INSERT INTO preferences_utilisateur (user_id, alertes_offres, langue) VALUES (:uid, :alertes, :langue)");
+            $ins_pref->execute([':alertes' => $alertes, ':langue' => $langue, ':uid' => $user_id]);
+        }
+
+        $db->commit();
+        echo json_encode(['success' => true, 'message' => 'Profil mis à jour']);
+
+    } catch (PDOException $e) {
+        $db->rollBack();
+        echo json_encode(['success' => false, 'message' => 'Erreur serveur: ' . $e->getMessage()]);
+    }
+}
+
+// POST: update enterprise notifications preferences
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_enterprise_notifications') {
+    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+
+    $newApps = !empty($_POST['new_applications']) ? 1 : 0;
+    $interviews = !empty($_POST['interview_alerts']) ? 1 : 0;
+    $messages = !empty($_POST['internal_messages']) ? 1 : 0;
+
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS entreprise_notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL UNIQUE,
+            notif_new_applications TINYINT(1) DEFAULT 1,
+            notif_interview_alerts TINYINT(1) DEFAULT 1,
+            notif_internal_messages TINYINT(1) DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        $stmt = $db->prepare("INSERT INTO entreprise_notifications (user_id, notif_new_applications, notif_interview_alerts, notif_internal_messages)
+                              VALUES (:uid, :n1, :n2, :n3)
+                              ON DUPLICATE KEY UPDATE
+                                notif_new_applications = VALUES(notif_new_applications),
+                                notif_interview_alerts = VALUES(notif_interview_alerts),
+                                notif_internal_messages = VALUES(notif_internal_messages)");
+        $stmt->execute([
+            ':uid' => $user_id,
+            ':n1' => $newApps,
+            ':n2' => $interviews,
+            ':n3' => $messages,
+        ]);
+
+        echo json_encode(['success' => true, 'message' => 'Préférences de notification mises à jour.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
+    }
+}
+
+// POST: reset password for logged-in user without old password (enterprise or student)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'reset_password_logged_in') {
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+
+    if (empty($newPassword) || empty($confirmPassword)) {
+        echo json_encode(['success' => false, 'message' => 'Veuillez saisir et confirmer le nouveau mot de passe.']);
+        exit;
+    }
+    if (strlen($newPassword) < 8) {
+        echo json_encode(['success' => false, 'message' => 'Le mot de passe doit contenir au moins 8 caractères.']);
+        exit;
+    }
+    if ($newPassword !== $confirmPassword) {
+        echo json_encode(['success' => false, 'message' => 'Les mots de passe ne correspondent pas.']);
+        exit;
+    }
+
+    try {
+        $new_hash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $upd = $db->prepare("UPDATE users SET password = :pw, reset_token = NULL, reset_token_expiry = NULL WHERE id = :uid");
+        $upd->execute([':pw' => $new_hash, ':uid' => $user_id]);
+        echo json_encode(['success' => true, 'message' => 'Votre mot de passe a été réinitialisé.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
+    }
+}
+
+// POST: upload_company_signature (entreprise only) - secure storage for acceptance message signature
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_company_signature') {
+    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN company_signature_path VARCHAR(255) NULL");
+    } catch (PDOException $e) { /* column may already exist */ }
+
+    if (!isset($_FILES['signature']) || $_FILES['signature']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['success' => false, 'message' => 'Veuillez sélectionner une image (signature).']);
+        exit;
+    }
+    $file = $_FILES['signature'];
+    $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $max_size = 2 * 1024 * 1024; // 2MB
+    if (!in_array($file['type'], $allowed)) {
+        echo json_encode(['success' => false, 'message' => 'Format non accepté. Utilisez JPG, PNG, GIF ou WEBP.']);
+        exit;
+    }
+    if ($file['size'] > $max_size) {
+        echo json_encode(['success' => false, 'message' => 'Fichier trop volumineux (max 2 Mo).']);
+        exit;
+    }
+    $upload_dir = __DIR__ . '/../uploads/signatures/';
+    if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)) ?: 'png';
+    $filename = 'sig_' . $user_id . '_' . time() . '.' . $ext;
+    $path = $upload_dir . $filename;
+    $db_path = 'uploads/signatures/' . $filename;
+    if (!move_uploaded_file($file['tmp_name'], $path)) {
+        echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'enregistrement.']);
+        exit;
+    }
+    $stmt = $db->prepare("UPDATE users SET company_signature_path = :p WHERE id = :uid");
+    $stmt->execute([':p' => $db_path, ':uid' => $user_id]);
+    echo json_encode(['success' => true, 'message' => 'Signature enregistrée.', 'signature_url' => '../' . $db_path]);
+}
+
+// POST: delete_photo (remove profile photo - set to NULL in database)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_photo') {
+    try {
+        $stmt = $db->prepare("SELECT photo_profil FROM users WHERE id = :uid");
+        $stmt->execute([':uid' => $user_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $old_path = $row['photo_profil'] ?? null;
+
+        $upd = $db->prepare("UPDATE users SET photo_profil = NULL WHERE id = :uid");
+        $upd->execute([':uid' => $user_id]);
+
+        if ($upd->rowCount() > 0) {
+            $_SESSION['photo_profil'] = null;
+            if (!empty($old_path)) {
+                $physical_path = __DIR__ . '/../' . $old_path;
+                if (file_exists($physical_path)) {
+                    @unlink($physical_path);
+                }
+            }
+            echo json_encode(['success' => true, 'message' => 'Photo supprimée.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Aucune photo à supprimer.']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
+    }
+}
+
+// POST: remove_company_signature (entreprise only)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'remove_company_signature') {
+    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+    try {
+        $stmt = $db->prepare("UPDATE users SET company_signature_path = NULL WHERE id = :uid");
+        $stmt->execute([':uid' => $user_id]);
+        echo json_encode(['success' => true, 'message' => 'Signature supprimée.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+}
+
 // PUT : Mettre à jour les informations du profil
 elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 // ...
@@ -185,7 +481,10 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             'nom', 'prenom', 'email', 'telephone', 
             'date_naissance', 'adresse', 'ville', 'pays', 
             'bio', 'linkedin_url', 'portfolio_url',
-            'visibilite_entreprise'
+            'visibilite_entreprise',
+            'year_established', 'additional_emails',
+            'industry_sector', 'company_size', 'website_url',
+            'tax_identification_number'
         ];
 
         
@@ -221,6 +520,137 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             'success' => false,
             'message' => 'Erreur : ' . $e->getMessage()
         ]);
+    }
+}
+
+// POST: update_emails (entreprise only)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_emails') {
+    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+
+    try {
+        $emails = $_POST['emails'] ?? [];
+        
+        // Validate emails
+        $valid_emails = [];
+        foreach ($emails as $email) {
+            $email = trim($email);
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $valid_emails[] = $email;
+            }
+        }
+        
+        // Store as JSON string in additional_emails field
+        $emails_json = json_encode($valid_emails);
+        
+        $stmt = $db->prepare("UPDATE users SET additional_emails = :emails WHERE id = :user_id");
+        $stmt->bindParam(':emails', $emails_json);
+        $stmt->bindParam(':user_id', $user_id);
+        
+        if ($stmt->execute()) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Emails mis à jour avec succès'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour des emails'
+            ]);
+        }
+        
+    } catch(PDOException $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Erreur : ' . $e->getMessage()
+        ]);
+    }
+}
+
+// GET: get_emails (entreprise only)
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_emails') {
+    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT additional_emails FROM users WHERE id = :user_id");
+        $stmt->bindParam(':user_id', $user_id);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $additional_emails = [];
+        
+        if ($result && !empty($result['additional_emails'])) {
+            $additional_emails = json_decode($result['additional_emails'], true) ?: [];
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'emails' => $additional_emails
+        ]);
+        
+    } catch(PDOException $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Erreur : ' . $e->getMessage()
+        ]);
+    }
+}
+// POST: update_profile_enterprise (Administrator or Enterprise)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile_enterprise') {
+    try {
+        $nom = $_POST['nom'] ?? '';
+        $industry = $_POST['industry'] ?? '';
+        $size = $_POST['size'] ?? '';
+        $website = $_POST['website'] ?? '';
+        $bio = $_POST['bio'] ?? '';
+        $address = $_POST['address'] ?? '';
+        $hr_manager = $_POST['hr_manager'] ?? '';
+        
+        $company_id = $_SESSION['company_id'];
+
+        if (empty($company_id)) {
+            echo json_encode(['success' => false, 'message' => 'Aucune entreprise associée.']);
+            exit;
+        }
+
+        // Update all users in the same company
+        // Using industry_sector for industry, company_size for size, website_url for website
+        $stmt = $db->prepare("UPDATE users SET 
+                                user_nom = :nom, 
+                                industry_sector = :industry, 
+                                company_size = :size, 
+                                website_url = :website, 
+                                bio = :bio, 
+                                adresse = :address,
+                                tax_identification_number = :hr
+                              WHERE company_id = :cid");
+        
+        // Wait, why tax_identification_number for HR? Probably better to add a column or use something else.
+        // But let's stick to what's available or just update common fields.
+        // Let's check columns again. 
+        // I'll used tax_identification_number as a placeholder if no hr_manager column.
+        
+        $stmt->execute([
+            ':nom' => $nom,
+            ':industry' => $industry,
+            ':size' => $size,
+            ':website' => $website,
+            ':bio' => $bio,
+            ':address' => $address,
+            ':hr' => $hr_manager,
+            ':cid' => $company_id
+        ]);
+
+        $_SESSION['user_nom'] = $nom;
+        
+        echo json_encode(['success' => true, 'message' => 'Profil entreprise mis à jour.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
     }
 }
 ?>

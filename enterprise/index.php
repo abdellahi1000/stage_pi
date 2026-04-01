@@ -1,6 +1,9 @@
 <?php 
 require_once '../include/session.php';
+// Check for employee role specifically
 check_auth('entreprise');
+
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -15,15 +18,15 @@ check_auth('entreprise');
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="../js/global.js" defer></script>
-    <script src="../js/enterprise_dashboard.js" defer></script>
+    <script src="../js/enterprise_dashboard.js?v=<?php echo time(); ?>" defer></script>
 </head>
-<body class="bg-gray-50">
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
     <div class="flex">
         <?php include '../include/sidebar.php'; ?>
 
         <main class="flex-1 min-h-screen overflow-y-auto bg-gray-50 md:ml-64">
             <!-- Mobile Toggle -->
-            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30 px-6">
                 <div class="flex items-center space-x-2">
                     <span class="font-bold text-blue-600">StageMatch</span>
                 </div>
@@ -41,7 +44,7 @@ check_auth('entreprise');
                         <span class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-widest mb-6">Espace Recrutement</span>
                         <h1 class="text-4xl md:text-5xl font-black mb-4 leading-tight">
                             Bonjour, <br>
-                            <span class="text-purple-200"><?php echo $_SESSION['user_nom'] ?? 'Entreprise'; ?></span> !
+                            <span class="text-purple-200"><?php echo $_SESSION['company_name'] ?? 'Entreprise'; ?></span> !
                         </h1>
                         <p class="text-purple-100/80 text-lg max-w-lg font-medium leading-relaxed">
                             Trouvez les meilleurs talents pour vos projets de stage et contribuez à la formation de demain.
@@ -52,7 +55,7 @@ check_auth('entreprise');
 
             <!-- Stats & Quick Actions -->
             <div class="max-w-5xl mx-auto px-6 py-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     <!-- Stat Card 1 -->
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-blue-500 transition-all duration-300">
                         <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -81,6 +84,19 @@ check_auth('entreprise');
                         <div>
                             <p class="text-3xl font-black text-gray-900" id="stat-recrutements">0</p>
                             <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Recrutements</p>
+                        </div>
+                    </div>
+                    <!-- Stat Card 4 (Messages) -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-indigo-500 transition-all duration-300 relative">
+                        <!-- Notification Dot -->
+                        <div id="notifDot" class="absolute top-4 right-4 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white shadow-sm hidden"></div>
+                        
+                        <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            <i class="fas fa-comment-dots text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-black text-gray-900" id="stat-messages">0</p>
+                            <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Messages</p>
                         </div>
                     </div>
                 </div>

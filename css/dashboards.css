@@ -50,14 +50,7 @@
   transition: transform 0.3s ease;
 }
 
-@media (max-width: 767px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar:not(.hidden) {
-    transform: translateX(0);
-  }
-}
+/* Sidebar transitions handled in global.css */
 
 .content-area {
   min-height: calc(100vh - 82px);
