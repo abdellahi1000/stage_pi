@@ -70,10 +70,12 @@ if ($action === 'login') {
             $_SESSION['user_nom'] = $user['nom'];
             $_SESSION['user_prenom'] = $user['prenom'];
             $_SESSION['user_type'] = $user['type_compte'];
+            $_SESSION['user_role'] = ($user['type_compte'] === 'admin') ? 'Administrator' : 'user';
             $_SESSION['user_tel'] = $user['telephone'];
             $_SESSION['photo_profil'] = $user['photo_profil'];
             $_SESSION['verified_status'] = $user['verified_status'] ?? 0;
             $_SESSION['logged_in'] = true;
+            $_SESSION['company_name'] = $user['nom']; 
 
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
@@ -97,7 +99,7 @@ if ($action === 'login') {
             $update_stmt->bindParam(':user_id', $user['id']);
             $update_stmt->execute();
 
-            $redirect = $user['type_compte'] === 'entreprise' ? 'enterprise/index.php' : 'students/index.php';
+            $redirect = ($_SESSION['user_role'] === 'Administrator') ? 'administrator/index.php' : ($user['type_compte'] === 'entreprise' ? 'enterprise/index.php' : 'students/index.php');
             echo json_encode([
                 'success' => true,
                 'message' => 'Connexion réussie',

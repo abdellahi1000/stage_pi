@@ -15,6 +15,11 @@ $action = isset($_POST['action']) ? $_POST['action'] : '';
 $database = new Database();
 $db = $database->getConnection();
 
+if (!$db) {
+    echo json_encode(['success' => false, 'message' => 'Erreur de connexion à la base de données']);
+    exit;
+}
+
 // --- LOGIN ---
 if ($action === 'login') {
     $email = trim($_POST['email']);
@@ -32,7 +37,7 @@ if ($action === 'login') {
     }
     
     try {
-        $query = "SELECT id, nom, prenom, email, password, type_compte, role, company_id, telephone, photo_profil, actif, account_status, verified_status FROM users WHERE email = :email";
+        $query = "SELECT id, nom, prenom, email, password, type_compte, telephone, photo_profil, actif, account_status, verified_status FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -63,24 +68,14 @@ if ($action === 'login') {
             $_SESSION['user_prenom'] = $user['prenom'];
             $_SESSION['user_type'] = $user['type_compte'];
             
-            $_SESSION['user_role'] = $user['role'] ?? 'user'; 
-            
-            $_SESSION['company_id'] = $user['company_id'];
+            $_SESSION['user_role'] = ($user['type_compte'] === 'admin') ? 'Administrator' : 'user';
             $_SESSION['user_tel'] = $user['telephone'];
             $_SESSION['photo_profil'] = $user['photo_profil'];
             $_SESSION['verified_status'] = $user['verified_status'] ?? 0;
             $_SESSION['logged_in'] = true;
 
-            // NEW: Fetch Company Details if enterprise
-            if ($user['type_compte'] === 'entreprise' && !empty($user['company_id'])) {
-                $comp_stmt = $db->prepare("SELECT name FROM companies WHERE id = :cid");
-                $comp_stmt->execute([':cid' => $user['company_id']]);
-                if ($comp = $comp_stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $_SESSION['company_name'] = $comp['name'];
-                } else {
-                    $_SESSION['company_name'] = $user['nom']; // Fallback
-                }
-            }
+            // Skip fetching company_id from session as it's not in the users table
+            $_SESSION['company_name'] = $user['nom']; 
 
             $th_stmt = $db->prepare("SELECT theme FROM preferences_utilisateur WHERE user_id = :uid");
             $th_stmt->bindParam(':uid', $user['id']);
@@ -108,7 +103,7 @@ if ($action === 'login') {
             
             // Redirection logic
             if ($user['type_compte'] === 'entreprise') {
-                $redirect = ($user['role'] === 'Administrator') ? 'administrator/index.php' : 'enterprise/index.php';
+                $redirect = ($_SESSION['user_role'] === 'Administrator') ? 'administrator/index.php' : 'enterprise/index.php';
             } else {
                 $redirect = 'students/index.php';
             }

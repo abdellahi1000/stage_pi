@@ -62,17 +62,17 @@ $sm_company_sizes = sm_get_company_sizes();
                 <!-- Previous inputs ... -->
                 <div class="grid-form grid-2-cols" id="nameFields">
                     <div class="input-group">
-                        <input type="text" id="nom" placeholder="Nom" required />
+                        <input type="text" id="nom" name="nom" placeholder="Nom" required />
                         <i class="fas fa-user" id="nomIcon"></i>
                     </div>
                     <div class="input-group" id="prenomGroup">
-                        <input type="text" id="prenom" placeholder="Prénom" required />
+                        <input type="text" id="prenom" name="prenom" placeholder="Prénom" required />
                         <i class="fas fa-user"></i>
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <input type="email" id="email" placeholder="Adresse e-mail" required />
+                    <input type="email" id="email" name="email" placeholder="Adresse e-mail" required />
                     <i class="fas fa-envelope"></i>
                 </div>
 
@@ -102,7 +102,7 @@ $sm_company_sizes = sm_get_company_sizes();
                     <div class="grid-form grid-2-cols mb-4">
                         <div class="input-group">
                             <div class="relative custom-dropdown w-full" id="dropdownSector" style="margin-bottom: 0;">
-                                <input type="hidden" name="industry_sector" required>
+                                <input type="hidden" id="industry_sector" name="industry_sector" required>
                                 <button type="button" class="w-full" style="padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: left; position: relative;">
                                     <span class="truncate">Secteur d'activité</span>
                                     <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
@@ -119,7 +119,7 @@ $sm_company_sizes = sm_get_company_sizes();
                         </div>
                         <div class="input-group">
                             <div class="relative custom-dropdown w-full" id="dropdownSize" style="margin-bottom: 0;">
-                                <input type="hidden" name="company_size" required>
+                                <input type="hidden" id="company_size" name="company_size" required>
                                 <button type="button" class="w-full" style="padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: left; position: relative;">
                                     <span class="truncate">Taille de l'entreprise</span>
                                     <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
@@ -189,11 +189,11 @@ $sm_company_sizes = sm_get_company_sizes();
 
                 <div class="grid-form grid-2-cols">
                     <div class="input-group">
-                        <input type="password" id="password" placeholder="Mot de passe" required />
+                        <input type="password" id="password" name="password" placeholder="Mot de passe" required />
                         <i class="fas fa-lock"></i>
                     </div>
                     <div class="input-group">
-                        <input type="password" id="password_confirm" placeholder="Confirmer" required />
+                        <input type="password" id="password_confirm" name="password_confirm" placeholder="Confirmer" required />
                         <i class="fas fa-lock"></i>
                     </div>
                 </div>

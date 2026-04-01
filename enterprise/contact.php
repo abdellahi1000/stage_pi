@@ -84,18 +84,20 @@ check_auth(); // Allow any authenticated user to view the page
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-sm font-extrabold text-slate-800 ml-1">Groupe / Option</label>
-                                    <div class="relative group">
-                                         <select name="problem_type" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer font-bold text-gray-700">
-                                             <option value="Problème de compte">Problème de compte</option>
-                                             <option value="Publication d'offre">Publication d'offre</option>
-                                             <option value="Gestion des candidats">Gestion des candidats</option>
-                                             <option value="Problème de sécurité">Problème de sécurité</option>
-                                             <option value="Facturation / Paiement">Facturation / Paiement</option>
-                                             <option value="Autre">Autre</option>
-                                         </select>
-                                        <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-blue-500 transition-colors">
-                                            <i class="fas fa-chevron-down text-sm"></i>
-                                        </div>
+                                    <div class="relative custom-dropdown" id="dropdownProblemType">
+                                         <button type="button" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 flex justify-between items-center font-bold text-gray-700 transition-all">
+                                             <span class="truncate">Problème de compte</span>
+                                             <i class="fas fa-chevron-down text-sm text-slate-400"></i>
+                                         </button>
+                                         <input type="hidden" name="problem_type" value="Problème de compte">
+                                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                             <div class="dropdown-item" data-value="Problème de compte">Problème de compte</div>
+                                             <div class="dropdown-item" data-value="Publication d'offre">Publication d'offre</div>
+                                             <div class="dropdown-item" data-value="Gestion des candidats">Gestion des candidats</div>
+                                             <div class="dropdown-item" data-value="Problème de sécurité">Problème de sécurité</div>
+                                             <div class="dropdown-item" data-value="Facturation / Paiement">Facturation / Paiement</div>
+                                             <div class="dropdown-item" data-value="Autre">Autre</div>
+                                         </div>
                                     </div>
                                 </div>
                             </div>

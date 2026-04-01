@@ -12,55 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCandidatures();
   loadOffresFilter();
 
-  // --- Custom Dropdowns Logic ---
-  document.querySelectorAll(".custom-dropdown").forEach((dropdown) => {
-    const button = dropdown.querySelector("button");
-    const menu = dropdown.querySelector(".dropdown-menu");
-    const label = button.querySelector("span");
-    const icon = button.querySelector(".fa-chevron-down");
-
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      document.querySelectorAll(".dropdown-menu").forEach((m) => {
-        if (m !== menu) m.classList.remove("active");
-      });
-      document.querySelectorAll(".fa-chevron-down").forEach((i) => {
-        if (i !== icon) i.classList.remove("rotate-180");
-      });
-
-      menu.classList.toggle("active");
-      icon.classList.toggle("rotate-180");
-    });
-
-    // Use event delegation for dynamic items
-    menu.addEventListener("click", (e) => {
-      const item = e.target.closest(".dropdown-item");
-      if (!item) return;
-
-      const value = item.dataset.value;
-      const text = item.textContent;
-
-      label.textContent = text;
-      menu.classList.remove("active");
-      icon.classList.remove("rotate-180");
-
-      if (dropdown.id === "dropdownOffre") {
-        activeFilters.offre_id = value;
-      } else if (dropdown.id === "dropdownStatut") {
-        activeFilters.statut = value;
-      }
-
-      loadCandidatures();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    document
-      .querySelectorAll(".dropdown-menu")
-      .forEach((m) => m.classList.remove("active"));
-    document
-      .querySelectorAll(".fa-chevron-down")
-      .forEach((i) => i.classList.remove("rotate-180"));
+  // Setup listeners for custom dropdown changes (handled by global.js)
+  document.querySelectorAll('#dropdownOffre, #dropdownStatut').forEach(d => {
+      d.addEventListener('change', () => loadCandidatures());
   });
 
   // Close modal on backdrop click
@@ -110,8 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const status = strtolower(c.statut);
                 const displayStatus = c.display_status || status;
                 const isClosed = status === 'closed';
-                const displayName = isClosed ? '********' : `${c.prenom} ${c.nom}`;
-                const displayEmail = isClosed ? '@.' : c.email;
+                const displayName = isClosed ? '********' : `${c.prenom || ''} ${c.nom || ''}`;
+                const displayEmail = isClosed ? '@.' : (c.email || '');
                 const rowClass = isClosed ? 'closed-row' : '';
                 const btnAttr = isClosed ? 'disabled class="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl font-bold text-xs cursor-not-allowed"' : `onclick="viewCandidat(${c.id})" class="px-4 py-2 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs hover:bg-blue-600 hover:text-white transition-all"`;
                 const btnLabel = isClosed ? 'Indisponible' : 'Détails';
@@ -121,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <td class="py-6 px-6 first:rounded-l-[2.5rem]">
                                     <div class="flex items-center gap-4">
                                         <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-bold text-xs">
-                                            ${isClosed ? '?' : c.prenom[0] + c.nom[0]}
+                                            ${isClosed ? '?' : (c.prenom && c.nom ? c.prenom[0] + c.nom[0] : 'U')}
                                         </div>
                                         <div>
                                             <p class="font-bold text-gray-900">${displayName}</p>
@@ -148,7 +102,13 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             )
             .join("");
+        } else {
+            tableBody.innerHTML = `<tr><td colspan="5" class="py-20 text-center bg-white rounded-[2rem] text-red-500 font-medium">Erreur : ${data.message || 'Impossible de charger les candidatures.'}</td></tr>`;
         }
+      })
+      .catch((err) => {
+          console.error("Fetch error:", err);
+          tableBody.innerHTML = '<tr><td colspan="5" class="py-20 text-center bg-white rounded-[2rem] text-red-500 font-medium">Erreur serveur. Veuillez réessayer plus tard.</td></tr>';
       });
   }
 
@@ -230,10 +190,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="flex justify-between items-start mb-10">
                                 <div class="flex items-center gap-6">
                                     <div class="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-blue-600 text-2xl font-black">
-                                        ${c.prenom[0]}${c.nom[0]}
+                                        ${(c.prenom && c.nom ? c.prenom[0] + c.nom[0] : 'U')}
                                     </div>
                                     <div>
-                                        <h2 class="text-3xl font-black text-gray-900">${c.prenom} ${c.nom}</h2>
+                                        <h2 class="text-3xl font-black text-gray-900">${c.prenom || ''} ${c.nom || ''}</h2>
                                         <p class="text-blue-600 font-bold uppercase tracking-widest text-xs">${c.offre_titre}</p>
                                     </div>
                                 </div>

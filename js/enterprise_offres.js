@@ -131,53 +131,9 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // Custom Dropdowns Logic
-  document.querySelectorAll(".custom-dropdown").forEach((dropdown) => {
-    const button = dropdown.querySelector("button");
-    const menu = dropdown.querySelector(".dropdown-menu");
-    const label = button.querySelector("span");
-    const icon = button.querySelector(".fa-chevron-down");
-
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      document.querySelectorAll(".dropdown-menu").forEach((m) => {
-        if (m !== menu) m.classList.remove("active");
-      });
-      document.querySelectorAll(".fa-chevron-down").forEach((i) => {
-        if (i !== icon) i.classList.remove("rotate-180");
-      });
-
-      menu.classList.toggle("active");
-      if (icon) icon.classList.toggle("rotate-180");
-    });
-
-    menu.querySelectorAll(".dropdown-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        const value = item.dataset.value;
-        const text = item.textContent;
-
-        label.textContent = text;
-        menu.classList.remove("active");
-        if (icon) icon.classList.remove("rotate-180");
-
-        if (dropdown.id === "dropdownStatut" || dropdown.id === "dropdownType" || dropdown.id === "dropdownLocalisation" || dropdown.id === "dropdownCategory") {
-          const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-          if (hiddenInput) {
-            hiddenInput.value = value;
-          }
-          filterLists();
-        }
-      });
-    });
-  });
-
-  window.addEventListener("click", () => {
-    document
-      .querySelectorAll(".dropdown-menu")
-      .forEach((m) => m.classList.remove("active"));
-    document
-      .querySelectorAll(".fa-chevron-down")
-      .forEach((i) => i.classList.remove("rotate-180"));
+  // Setup listeners for custom dropdown changes (handled by global.js)
+  document.querySelectorAll('#dropdownStatut, #dropdownType, #dropdownLocalisation, #dropdownCategory').forEach(d => {
+    d.addEventListener('change', () => filterLists());
   });
 
   function filterLists() {
