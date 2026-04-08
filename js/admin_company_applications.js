@@ -86,25 +86,25 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!allApps) return;
         const q = searchApp ? searchApp.value.toLowerCase() : "";
         const statusVal = document.querySelector("#dropdownStatutApp input") ? document.querySelector("#dropdownStatutApp input").value : "";
+        const typeVal = document.querySelector("#dropdownTypeApp input") ? document.querySelector("#dropdownTypeApp input").value : "";
         
         let filtered = allApps;
         
         if (q) {
             filtered = filtered.filter(a => 
-                a.nom.toLowerCase().includes(q) || 
-                a.prenom.toLowerCase().includes(q) || 
-                a.offre_titre.toLowerCase().includes(q) || 
-                a.email.toLowerCase().includes(q)
+                (a.nom && a.nom.toLowerCase().includes(q)) || 
+                (a.prenom && a.prenom.toLowerCase().includes(q)) || 
+                (a.offre_titre && a.offre_titre.toLowerCase().includes(q)) || 
+                (a.email && a.email.toLowerCase().includes(q))
             );
         }
         
         if (statusVal) {
-            filtered = filtered.filter(a => {
-                if (statusVal === 'stage' || statusVal === 'alternance') {
-                    return a.type_contrat && a.type_contrat.toLowerCase() === statusVal;
-                }
-                return a.statut === statusVal;
-            });
+            filtered = filtered.filter(a => a.statut === statusVal);
+        }
+
+        if (typeVal) {
+            filtered = filtered.filter(a => (a.type_contrat || 'Stage') === typeVal);
         }
         
         renderApps(filtered);

@@ -11,14 +11,15 @@ $db = $database->getConnection();
 
 // Ensure nombre_stagiaires column exists
 try {
-    $chk = $db->query("SHOW COLUMNS FROM offres_stage LIKE 'nombre_stagiaires'");
+    $chk = $db->query("SHOW COLUMNS FROM offres LIKE 'nombre_stagiaires'");
     if ($chk->rowCount() === 0) {
-        $db->exec("ALTER TABLE offres_stage ADD COLUMN nombre_stagiaires INT DEFAULT 1");
+        $db->exec("ALTER TABLE offres ADD COLUMN nombre_stagiaires INT DEFAULT 1");
     }
 } catch (PDOException $e) { /* non-blocking */ }
 
 // Valid offer types: Stage and Alternance only
-define('VALID_TYPE_CONTRAT', ['Stage', 'Alternance']);
+// Valid offer types
+define('VALID_TYPE_CONTRAT', ['Stage', 'Alternance', 'Candidate']);
 
 // GET : Récupérer toutes les offres ou les offres d'une entreprise
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -40,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $total_active = 0;
         $is_accepted_globally = false;
         
-        if ($current_user && $_SESSION['user_type'] === 'etudiant') {
+        if ($current_user && (($_SESSION['user_role'] ?? '') === 'student')) {
             $check_rules = $db->prepare("SELECT 
                 COUNT(*) as total, 
                 SUM(CASE WHEN statut = 'accepted' THEN 1 ELSE 0 END) as accepted_count 
@@ -53,45 +54,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         $query = "SELECT 
                     o.id,
-                    o.titre,
-                    o.entreprise,
+                    o.title,
+                    o.title as titre,
                     o.description,
                     o.localisation,
                     o.type_contrat,
                     o.nombre_stagiaires,
+                    o.places_alternances,
                     o.duree,
                     o.remuneration,
-                    o.competences_requises,
-                    o.date_publication,
-                    o.date_limite,
                     o.statut,
-                    o.user_id as entreprise_id,
+                    o.entreprise_id,
                     o.categorie_id,
                     o.specialization,
                     o.technologies,
                     o.questions,
                     o.tags,
-                    u.nom as recruteur_nom,
-                    u.prenom as recruteur_prenom,
-                    u.email as recruteur_email,
-                    u.verified_status,
-                    u.photo_profil as entreprise_photo,
+                    (SELECT name FROM entreprises WHERE id = o.entreprise_id LIMIT 1) as entreprise,
+                    (SELECT nom FROM users WHERE entreprise_id = o.entreprise_id AND role = 'admin' LIMIT 1) as recruteur_nom,
+                    (SELECT photo_profil FROM users WHERE entreprise_id = o.entreprise_id AND role = 'admin' LIMIT 1) as entreprise_photo,
+                    (SELECT verified_status FROM users WHERE entreprise_id = o.entreprise_id AND role = 'admin' LIMIT 1) as verified_status,
                     (SELECT COUNT(*) FROM candidatures WHERE offre_id = o.id) as nombre_candidatures,
-                    (SELECT COUNT(*) FROM candidatures c2 INNER JOIN offres_stage o2 ON c2.offre_id = o2.id 
-                     WHERE c2.user_id = :current_user AND o2.user_id = o.user_id) as deja_postule_entreprise,
+                    (SELECT COUNT(*) FROM candidatures WHERE offre_id = o.id AND type_contrat = 'Stage') as total_stagiaires,
+                    (SELECT COUNT(*) FROM candidatures WHERE offre_id = o.id AND (type_contrat IN ('Alternance', 'Apprentissage'))) as total_alternances,
+                    (SELECT COUNT(*) FROM candidatures c2 INNER JOIN offres o2 ON c2.offre_id = o2.id 
+                     WHERE c2.user_id = :current_user AND o2.entreprise_id = o.entreprise_id) as deja_postule_entreprise,
                     (SELECT COUNT(*) FROM offer_favorites WHERE offer_id = o.id) as total_favorites,
                     (SELECT COUNT(*) FROM offer_favorites WHERE offer_id = o.id AND student_id = :current_user) as is_favorited
-                  FROM offres_stage o
-                  LEFT JOIN users u ON o.user_id = u.id
+                  FROM offres o
                   WHERE 1=1";
         
         // Filtres
         if ($user_id) {
-            $query .= " AND o.user_id = :user_id";
+            $query .= " AND o.entreprise_id = :user_id";
         } else {
             // Pour les étudiants, on ne montre que les offres actives
-            // Et on vérifie la visibilité globale de l'entreprise
-            $query .= " AND o.statut = 'active' AND u.visibilite_entreprise = 1";
+            $query .= " AND o.statut = 'active'";
         }
 
         $only_favoris = isset($_GET['favoris']) ? intval($_GET['favoris']) : 0;
@@ -100,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if (!empty($search)) {
-            $query .= " AND (o.titre LIKE :search OR o.entreprise LIKE :search OR o.localisation LIKE :search)";
+            $query .= " AND (o.title LIKE :search OR o.localisation LIKE :search)";
         }
         if (!empty($statut_filter)) {
             $query .= " AND o.statut = :statut";
@@ -115,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $query .= " AND o.categorie_id = :categorie_id";
         }
         
-        $query .= " ORDER BY o.date_publication DESC LIMIT :limit OFFSET :offset";
+        $query .= " ORDER BY o.id DESC LIMIT :limit OFFSET :offset";
         
         $stmt = $db->prepare($query);
         $stmt->bindParam(':current_user', $current_user, PDO::PARAM_INT);
@@ -154,15 +152,19 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once '../include/check_permission.php';
     require_permission('can_create_offers', $db);
     
-    $user_id = get_enterprise_id();
-    $titre = trim($_POST['titre']);
-    $entreprise = $_SESSION['company_name'] ?? $_SESSION['user_nom'];
+    $entreprise_id = get_enterprise_id();
+    $title = trim($_POST['titre'] ?? $_POST['title']);
     $description = trim($_POST['description']);
     $localisation = trim($_POST['localisation']);
     $type_contrat = $_POST['type_contrat'] ?? 'Stage';
     if (!in_array($type_contrat, VALID_TYPE_CONTRAT)) {
         $type_contrat = 'Stage';
     }
+
+    // Specific permissions for type
+    if ($type_contrat === 'Stage') require_permission('can_create_stagiaire', $db);
+    if ($type_contrat === 'Alternance') require_permission('can_create_alternance', $db);
+
     $nombre_stagiaires = isset($_POST['nombre_stagiaires']) ? max(1, min(99, intval($_POST['nombre_stagiaires']))) : 1;
 
     $duree = $_POST['duree'] ?? '';
@@ -173,18 +175,19 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $questions = $_POST['questions'] ?? '';
     $tags = $_POST['tags'] ?? '';
     $statut = $_POST['statut'] ?? 'active';
+    $places_alternances = isset($_POST['places_alternances']) ? max(0, intval($_POST['places_alternances'])) : 0;
     
     try {
-        $stmt = $db->prepare("INSERT INTO offres_stage (user_id, titre, entreprise, description, localisation, type_contrat, nombre_stagiaires, duree, remuneration, statut, categorie_id, specialization, technologies, questions, tags) VALUES (:user_id, :titre, :entreprise, :description, :localisation, :type_contrat, :nombre_stagiaires, :duree, :remuneration, :statut, :categorie_id, :specialization, :technologies, :questions, :tags)");
+        $stmt = $db->prepare("INSERT INTO offres (entreprise_id, title, description, localisation, type_contrat, nombre_stagiaires, places_alternances, duree, remuneration, statut, categorie_id, specialization, technologies, questions, tags) VALUES (:ent_id, :title, :description, :localisation, :type_contrat, :nombre_stagiaires, :places_alternances, :duree, :remuneration, :statut, :categorie_id, :specialization, :technologies, :questions, :tags)");
         
         $stmt->execute([
-            ':user_id' => $user_id,
-            ':titre' => $titre,
-            ':entreprise' => $entreprise,
+            ':ent_id' => $entreprise_id,
+            ':title' => $title,
             ':description' => $description,
             ':localisation' => $localisation,
             ':type_contrat' => $type_contrat,
             ':nombre_stagiaires' => $nombre_stagiaires,
+            ':places_alternances' => $places_alternances,
             ':duree' => $duree,
             ':remuneration' => $remuneration,
             ':statut' => $statut,
@@ -212,7 +215,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     
     require_once '../include/check_permission.php';
     require_permission('can_edit_offers', $db);
-    $user_id = get_enterprise_id();
+    $entreprise_id = get_enterprise_id();
     $id = isset($_PUT['id']) ? intval($_PUT['id']) : 0;
     
     if ($id <= 0) {
@@ -223,12 +226,13 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     try {
         // Build dynamic update
         $fields = [];
-        $params = [':id' => $id, ':user_id' => $user_id];
+        $params = [':id' => $id, ':ent_id' => $entreprise_id];
         
-        $allowed = ['titre', 'description', 'localisation', 'type_contrat', 'nombre_stagiaires', 'duree', 'remuneration', 'statut', 'categorie_id', 'specialization', 'technologies', 'questions', 'tags'];
+        $allowed = ['title', 'description', 'localisation', 'type_contrat', 'nombre_stagiaires', 'places_alternances', 'duree', 'remuneration', 'statut', 'categorie_id', 'specialization', 'technologies', 'questions', 'tags'];
         foreach ($allowed as $f) {
-            if (isset($_PUT[$f])) {
-                $val = $_PUT[$f];
+            $input_key = ($f === 'title') ? (isset($_PUT['title']) ? 'title' : (isset($_PUT['titre']) ? 'titre' : 'title')) : $f;
+            if (isset($_PUT[$input_key])) {
+                $val = $_PUT[$input_key];
                 if ($f === 'type_contrat' && !in_array($val, VALID_TYPE_CONTRAT)) {
                     $val = 'Stage';
                 }
@@ -246,7 +250,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             exit;
         }
         
-        $sql = "UPDATE offres_stage SET " . implode(', ', $fields) . " WHERE id = :id AND user_id = :user_id";
+        $sql = "UPDATE offres SET " . implode(', ', $fields) . " WHERE id = :id AND entreprise_id = :ent_id";
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         
@@ -266,12 +270,12 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     
     require_once '../include/check_permission.php';
     require_permission('can_delete_offers', $db);
-    $user_id = get_enterprise_id();
+    $entreprise_id = get_enterprise_id();
     
-    $id = intval($_DELETE['offre_id']);
+    $id = intval($_DELETE['offre_id'] ?? $_DELETE['id']);
     try {
-        $stmt = $db->prepare("DELETE FROM offres_stage WHERE id = :id AND user_id = :user_id");
-        $stmt->execute([':id' => $id, ':user_id' => $user_id]);
+        $stmt = $db->prepare("DELETE FROM offres WHERE id = :id AND entreprise_id = :ent_id");
+        $stmt->execute([':id' => $id, ':ent_id' => $entreprise_id]);
         echo json_encode(['success' => true]);
     } catch(PDOException $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);

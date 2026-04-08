@@ -37,6 +37,7 @@ function ensureAcceptanceColumns($db)
             'company_contact_email' => "VARCHAR(255) NULL",
             'company_contact_phone' => "VARCHAR(50) NULL",
             'company_whatsapp'      => "VARCHAR(50) NULL",
+            'type_contrat'          => "VARCHAR(50) DEFAULT 'Stage'",
         ];
 
         foreach ($cols as $col => $type) {
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     c.company_contact_email,
                     c.company_contact_phone,
                     c.company_whatsapp,
-                    o.titre,
+                    o.title AS titre,
                     o.entreprise,
                     o.localisation,
                     o.type_contrat,
@@ -109,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     u.verified_status,
                     u.company_signature_path
                   FROM candidatures c
-                  INNER JOIN offres_stage o ON c.offre_id = o.id
+                  INNER JOIN offres o ON c.offre_id = o.id
                   INNER JOIN users u ON o.user_id = u.id
                   WHERE c.user_id = :user_id
                   ORDER BY c.date_candidature DESC";
@@ -160,7 +161,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Obtenir l'entreprise (user_id de l'offre)
-        $offre_stmt = $db->prepare("SELECT user_id, entreprise FROM offres_stage WHERE id = :offre_id");
+        $offre_stmt = $db->prepare("SELECT user_id, entreprise FROM offres WHERE id = :offre_id");
         $offre_stmt->execute([':offre_id' => $offre_id]);
         $offre = $offre_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -201,7 +202,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 3. One application per company PERMANENTLY (even if refused or closed by another acceptance)
         // If they have any existing application, block them.
         $check_company_query = "SELECT c.id FROM candidatures c
-                                INNER JOIN offres_stage o ON c.offre_id = o.id
+                                INNER JOIN offres o ON c.offre_id = o.id
                                 WHERE c.user_id = :user_id 
                                 AND o.user_id = :entreprise_user_id";
         $check_company_stmt = $db->prepare($check_company_query);
@@ -317,12 +318,13 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check_rep = $db->query("SHOW COLUMNS FROM candidatures LIKE 'reponses_questions'");
         $has_rep_col = ($check_rep->rowCount() > 0);
 
-        $cols = "user_id, offre_id, message_motivation, statut";
-        $vals = ":user_id, :offre_id, :message, 'pending'";
+        $cols = "user_id, offre_id, message_motivation, statut, type_contrat";
+        $vals = ":user_id, :offre_id, :message, 'pending', :type_contrat";
         $params = [
             ':user_id' => $user_id,
             ':offre_id' => $offre_id,
-            ':message' => $message_motivation
+            ':message' => $message_motivation,
+            ':type_contrat' => $_POST['type_contrat'] ?? 'Stage'
         ];
 
         if ($has_cv_col) { $cols .= ", cv_specifique"; $vals .= ", :cv_path"; $params[':cv_path'] = $cv_path_to_save; }
@@ -534,7 +536,7 @@ CREATE TABLE IF NOT EXISTS candidatures (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (offre_id) REFERENCES offres_stage(id) ON DELETE CASCADE,
+    FOREIGN KEY (offre_id) REFERENCES offres(id) ON DELETE CASCADE,
     UNIQUE KEY unique_candidature (user_id, offre_id),
     INDEX idx_user_id (user_id),
     INDEX idx_offre_id (offre_id),

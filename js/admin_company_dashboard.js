@@ -16,11 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateStats(stats) {
-    document.getElementById("stat-total-offers").textContent = stats.total_offers || 0;
-    document.getElementById("stat-total-apps").textContent = stats.total_apps || 0;
-    document.getElementById("stat-accepted").textContent = stats.accepted || 0;
-    document.getElementById("stat-rejected").textContent = stats.rejected || 0;
-    document.getElementById("stat-blocked").textContent = stats.blocked || 0;
+    if (document.getElementById("stat-total-offers")) document.getElementById("stat-total-offers").textContent = stats.total_offers || 0;
+    if (document.getElementById("stat-total-apps")) document.getElementById("stat-total-apps").textContent = stats.total_apps || 0;
+    if (document.getElementById("stat-accepted-stagiaires")) document.getElementById("stat-accepted-stagiaires").textContent = stats.accepted_stagiaires || 0;
+    if (document.getElementById("stat-accepted-alternances")) document.getElementById("stat-accepted-alternances").textContent = stats.accepted_alternances || 0;
+    if (document.getElementById("stat-rejected")) document.getElementById("stat-rejected").textContent = stats.rejected || 0;
   }
 
   function renderChart(chartData) {

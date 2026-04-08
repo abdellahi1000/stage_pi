@@ -1,19 +1,18 @@
 <?php
 // include/check_permission.php
 function require_permission($perm, $db) {
-    $user_type = $_SESSION['user_type'] ?? '';
     $user_role = $_SESSION['user_role'] ?? '';
 
-    // Allow both 'entreprise' and 'admin' types to pass through
-    if ($user_type !== 'entreprise' && $user_type !== 'admin') {
+    // Only 'admin' and 'employee' roles can access enterprise features
+    if ($user_role !== 'admin' && $user_role !== 'employee') {
         echo json_encode(['success' => false, 'message' => 'Accès refusé']);
         exit;
     }
 
-    // An Administrator (of any type) always passes - they have all permissions
-    if ($user_role === 'Administrator') return true;
+    // Admins always have all permissions
+    if ($user_role === 'admin') return true;
 
-    // For non-admin employees, check the specific permission column
+    // For employees, check their specific permission in users table
     try {
         $stmt = $db->prepare("SELECT `$perm` FROM users WHERE id = :id");
         $stmt->execute([':id' => $_SESSION['user_id']]);
@@ -23,12 +22,11 @@ function require_permission($perm, $db) {
             exit;
         }
     } catch (PDOException $e) {
-        // If column doesn't exist yet, allow through
-        return true;
+        return true; // Default to allow if permission system is missing columns
     }
     return true;
 }
 
 function get_enterprise_id() {
-    return isset($_SESSION['company_id']) ? $_SESSION['company_id'] : (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0);
+    return $_SESSION['entreprise_id'] ?? 0;
 }

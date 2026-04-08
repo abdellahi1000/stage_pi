@@ -1,6 +1,6 @@
 <?php 
 require_once '../include/session.php';
-check_auth('entreprise', 'Administrator');
+check_auth('admin');
 
 ?>
 <!DOCTYPE html>
@@ -41,7 +41,7 @@ check_auth('entreprise', 'Administrator');
                 </div>
 
                 <!-- Filters -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                     <div class="md:col-span-2 relative">
                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         <input type="text" id="searchApp" placeholder="Rechercher un candidat ou une offre..." class="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-white focus:border-blue-500 outline-none shadow-sm">
@@ -53,15 +53,26 @@ check_auth('entreprise', 'Administrator');
                         </button>
                         <input type="hidden" name="filter_status" value="">
                         <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
-                            <div class="dropdown-item" data-value="">Tout</div>
+                            <div class="dropdown-item" data-value="">Tout les statuts</div>
                             <div class="dropdown-item" data-value="pending">En attente</div>
                             <div class="dropdown-item" data-value="accepted">Accepté</div>
                             <div class="dropdown-item" data-value="rejected">Refusé</div>
-                            <div class="dropdown-item" data-value="stage">Stage</div>
-                            <div class="dropdown-item" data-value="alternance">Alternance</div>
                         </div>
                     </div>
-
+                    <!-- Type Filter -->
+                    <div class="relative custom-dropdown" id="dropdownTypeApp">
+                        <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
+                            <span class="truncate text-gray-700 font-medium">Type</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+                        <input type="hidden" name="filter_type" value="">
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="">Tout les types</div>
+                            <div class="dropdown-item" data-value="Stage">Stage</div>
+                            <div class="dropdown-item" data-value="Alternance">Alternance</div>
+                            <div class="dropdown-item" data-value="Candidate">Candidat (Simple)</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-6" id="applicationsGrid">

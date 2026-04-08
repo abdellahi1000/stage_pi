@@ -18,37 +18,39 @@ document.addEventListener("DOMContentLoaded", () => {
         e.target.value = e.target.value.toUpperCase();
       }
 
+      const companyNameInput = document.getElementById("company_name");
+      if (companyNameInput) {
+        companyNameInput.addEventListener("input", uppercaseInput);
+      }
+
       // Update UI with classes and text
       if (newType === "etudiant") {
         selectedTypeIcon.className = "fas fa-user-graduate";
         selectedTypeText.textContent = "Compte Étudiant";
 
-        document.getElementById('nomIcon').className = "fas fa-user";
-        document.getElementById('nom').placeholder = "Nom";
-        document.getElementById('nom').removeEventListener("input", uppercaseInput);
+        document.getElementById('nom').placeholder = "Votre Nom";
+        document.getElementById('prenom').placeholder = "Votre Prénom";
         document.getElementById('prenomGroup').style.display = "block";
-        document.getElementById('prenom').required = true;
         document.getElementById('nameFields').style.gridTemplateColumns = "1fr 1fr";
 
+        document.getElementById('enterpriseNameGroup').style.display = "none";
         document.getElementById('enterpriseFields').style.display = "none";
         document.getElementById('enterpriseWarningMsg').style.display = "none";
-        const entInputs = document.querySelectorAll('#enterpriseFields input, #enterpriseFields select');
+        const entInputs = document.querySelectorAll('#enterpriseFields input:not([type="file"]), #enterpriseFields select, #company_name');
         entInputs.forEach(el => el.required = false);
       } else {
         selectedTypeIcon.className = "fas fa-building";
         selectedTypeText.textContent = "Compte Entreprise";
 
-        document.getElementById('nomIcon').className = "fas fa-building";
-        document.getElementById('nom').placeholder = "Nom de l'entreprise";
-        document.getElementById('nom').addEventListener("input", uppercaseInput);
-        document.getElementById('prenomGroup').style.display = "none";
-        document.getElementById('prenom').required = false;
-        document.getElementById('prenom').value = "";
-        document.getElementById('nameFields').style.gridTemplateColumns = "1fr";
+        document.getElementById('nom').placeholder = "Nom du Manager / Admin";
+        document.getElementById('prenom').placeholder = "Prénom du Manager";
+        document.getElementById('prenomGroup').style.display = "block";
+        document.getElementById('nameFields').style.gridTemplateColumns = "1fr 1fr";
 
+        document.getElementById('enterpriseNameGroup').style.display = "block";
         document.getElementById('enterpriseFields').style.display = "block";
         document.getElementById('enterpriseWarningMsg').style.display = "block";
-        const entInputs = document.querySelectorAll('#enterpriseFields input, #enterpriseFields select');
+        const entInputs = document.querySelectorAll('#enterpriseFields input:not([type="file"]), #enterpriseFields select, #company_name');
         entInputs.forEach(el => el.required = true);
       }
     });

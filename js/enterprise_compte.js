@@ -118,8 +118,10 @@ function openExportModal() {
       const format = btn.getAttribute('data-format');
       if (!format) return;
       const f = format.toLowerCase().trim();
-      if (!['csv', 'excel', 'pdf'].includes(f)) return;
       close();
+      if (typeof showToast === 'function') {
+        showToast('Exportation', 'Votre rapport de recrutement est en cours de génération.', 'success');
+      }
       window.location.href = `../api/export_recrutement.php?format=${encodeURIComponent(f)}`;
     });
   });
@@ -152,19 +154,29 @@ function saveProfile() {
     .then(res => res.json())
     .then(res => {
         if (res.success) {
-            if (typeof showMessage === 'function') {
+            if (typeof showToast === 'function') {
+                showToast('Succès', "Profil mis à jour avec succès !", "success");
+            } else if (typeof showMessage === 'function') {
                 showMessage("Profil mis à jour avec succès !", "success");
             } else {
                 alert("Profil mis à jour avec succès !");
             }
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            alert(res.message || "Erreur lors de la mise à jour.");
+            if (typeof showToast === 'function') {
+                showToast('Erreur', res.message || "Erreur lors de la mise à jour.", "error");
+            } else {
+                alert(res.message || "Erreur lors de la mise à jour.");
+            }
         }
     })
     .catch(err => {
         console.error(err);
-        alert("Erreur serveur.");
+        if (typeof showToast === 'function') {
+            showToast('Erreur', "Erreur serveur.", "error");
+        } else {
+            alert("Erreur serveur.");
+        }
     })
     .finally(() => {
         btn.innerHTML = originalText;
@@ -190,16 +202,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(data => {
                     if (data.success) {
                         document.getElementById('formProfileImg').src = data.photo_url;
-                        if (typeof showMessage === 'function') {
+                        if (typeof showToast === 'function') {
+                            showToast('Succès', "Logo mis à jour !", "success");
+                        } else if (typeof showMessage === 'function') {
                             showMessage("Logo mis à jour !", "success");
                         } else {
                             alert("Logo mis à jour !");
                         }
                     } else {
-                        alert(data.message || "Erreur d'upload.");
+                        if (typeof showToast === 'function') {
+                            showToast('Erreur', data.message || "Erreur d'upload.", "error");
+                        } else {
+                            alert(data.message || "Erreur d'upload.");
+                        }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    if (typeof showToast === 'function') {
+                        showToast('Erreur', "Erreur lors de l'upload.", "error");
+                    }
+                });
             }
         });
     }

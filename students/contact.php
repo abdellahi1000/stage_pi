@@ -12,7 +12,7 @@ $user_id = $_SESSION['user_id'];
 $stmt = $db->prepare("
     SELECT DISTINCT u.id as company_id, u.nom as company_name 
     FROM candidatures c
-    JOIN offres_stage o ON c.offre_id = o.id
+    JOIN offres o ON c.offre_id = o.id
     JOIN users u ON o.user_id = u.id
     WHERE c.user_id = ?
 ");

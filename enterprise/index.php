@@ -55,48 +55,58 @@ check_auth('entreprise');
 
             <!-- Stats & Quick Actions -->
             <div class="max-w-5xl mx-auto px-6 py-8">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                    <!-- Stat Card 1 -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-blue-500 transition-all duration-300">
-                        <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <i class="fas fa-briefcase text-xl"></i>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
+                    <!-- Stat Card 1: Offres -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-blue-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <i class="fas fa-briefcase"></i>
                         </div>
                         <div>
-                            <p class="text-3xl font-black text-gray-900" id="stat-offres">0</p>
-                            <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Offres actives</p>
+                            <p class="text-2xl font-black text-gray-900" id="stat-offres">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Offres Actives</p>
                         </div>
                     </div>
-                    <!-- Stat Card 2 -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-purple-500 transition-all duration-300">
-                        <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
-                            <i class="fas fa-user-tie text-xl"></i>
+                    <!-- Stat Card 2: Candidatures -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-indigo-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            <i class="fas fa-file-alt"></i>
                         </div>
                         <div>
-                            <p class="text-3xl font-black text-gray-900" id="stat-candidats">0</p>
-                            <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Candidatures</p>
+                            <p class="text-2xl font-black text-gray-900" id="stat-candidats">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Candidatures</p>
                         </div>
                     </div>
-                    <!-- Stat Card 3 -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-green-500 transition-all duration-300">
-                        <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-all">
-                            <i class="fas fa-check-circle text-xl"></i>
+                    <!-- Stat Card 3: Stagiaires Acceptés -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-green-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-all">
+                            <i class="fas fa-user-graduate"></i>
                         </div>
                         <div>
-                            <p class="text-3xl font-black text-gray-900" id="stat-recrutements">0</p>
-                            <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Recrutements</p>
+                            <p class="text-2xl font-black text-gray-900" id="stat-accepted-stagiaires">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Stagiaires Acceptés</p>
                         </div>
                     </div>
-                    <!-- Stat Card 4 (Messages) -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-indigo-500 transition-all duration-300 relative">
+                    <!-- Stat Card 4: Alternances Acceptées -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-purple-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-black text-gray-900" id="stat-accepted-alternances">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Alternances Acceptées</p>
+                        </div>
+                    </div>
+                    <!-- Stat Card 5: Messages -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-rose-500 transition-all duration-300 relative">
                         <!-- Notification Dot -->
-                        <div id="notifDot" class="absolute top-4 right-4 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white shadow-sm hidden"></div>
+                        <div id="notifDot" class="absolute top-4 right-4 w-3 h-3 bg-rose-500 rounded-full border-2 border-white shadow-sm hidden"></div>
                         
-                        <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            <i class="fas fa-comment-dots text-xl"></i>
+                        <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all">
+                            <i class="fas fa-comment-dots"></i>
                         </div>
                         <div>
-                            <p class="text-3xl font-black text-gray-900" id="stat-messages">0</p>
-                            <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Messages</p>
+                            <p class="text-2xl font-black text-gray-900" id="stat-messages">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Messages</p>
                         </div>
                     </div>
                 </div>

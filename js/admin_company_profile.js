@@ -41,6 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (form) {
+        form.nom.addEventListener("input", (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
         form.addEventListener("submit", (e) => {
             e.preventDefault();
             const btn = form.querySelector('button[type="submit"]');

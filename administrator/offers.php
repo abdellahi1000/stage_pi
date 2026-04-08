@@ -1,7 +1,29 @@
 <?php 
 require_once '../include/session.php';
 require_once '../include/lookups.php';
-check_auth('entreprise', 'Administrator');
+require_once '../include/db_connect.php';
+check_auth('admin');
+
+$database = new Database();
+$db = $database->getConnection();
+
+// --- Fix for missing enterprise_id for global admins ---
+if (!isset($_SESSION['entreprise_id']) || empty($_SESSION['entreprise_id']) || $_SESSION['entreprise_id'] == 0) {
+    $stmt_find = $db->query("SELECT id FROM entreprises LIMIT 1");
+    $fallback_id = $stmt_find->fetchColumn();
+    if ($fallback_id) {
+        $_SESSION['entreprise_id'] = $fallback_id;
+        $stmt_name = $db->prepare("SELECT name FROM entreprises WHERE id = ?");
+        $stmt_name->execute([$fallback_id]);
+        $_SESSION['company_name'] = $stmt_name->fetchColumn();
+        
+        if (isset($_SESSION['user_id'])) {
+            $stmt_upd = $db->prepare("UPDATE users SET entreprise_id = ? WHERE id = ? AND entreprise_id IS NULL");
+            $stmt_upd->execute([$fallback_id, $_SESSION['user_id']]);
+        }
+    }
+}
+// --- End Fix ---
 
 $sm_cities = sm_get_cities();
 $sm_contract_types = sm_get_contract_types();
@@ -249,15 +271,20 @@ $sm_contract_types = sm_get_contract_types();
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="md:col-span-1 space-y-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Places</label>
-                                <input type="number" name="nombre_stagiaires" min="1" value="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-bold">
+                        <div class="grid grid-cols-2 gap-6 mb-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Places Stagiaires</label>
+                                <input type="number" name="nombre_stagiaires" min="0" value="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-bold">
                             </div>
-                            <div class="md:col-span-2 space-y-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Description de l'offre</label>
-                                <textarea name="description" required rows="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none font-medium" placeholder="Décrivez les missions..."></textarea>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Places Alternances</label>
+                                <input type="number" name="places_alternances" min="0" value="0" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all font-bold">
                             </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Description de l'offre</label>
+                            <textarea name="description" required rows="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none font-medium" placeholder="Décrivez les missions..."></textarea>
                         </div>
                     </div>
 

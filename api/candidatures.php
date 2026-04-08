@@ -21,7 +21,7 @@ require_once '../include/check_permission.php';
 $database = new Database();
 $db = $database->getConnection();
 require_permission('can_manage_candidates', $db);
-$user_id = get_enterprise_id();
+$ent_id = get_enterprise_id();
 
 /**
  * Stabilise de façon permanente le schéma de la table `candidatures`
@@ -118,11 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $offre_id = isset($_GET['offre_id']) ? intval($_GET['offre_id']) : null;
             $statut = isset($_GET['statut']) ? $_GET['statut'] : null;
             
-            $query = "SELECT c.*, u.nom, u.prenom, u.email, o.titre as offre_titre 
+            $query = "SELECT c.*, u.nom, u.prenom, u.email, o.title as offre_titre 
                       FROM candidatures c 
                       INNER JOIN users u ON c.user_id = u.id 
-                      INNER JOIN offres_stage o ON c.offre_id = o.id 
-                      WHERE o.user_id = :user_id";
+                      INNER JOIN offres o ON c.offre_id = o.id 
+                      WHERE o.entreprise_id = :ent_id";
             
             if ($offre_id) $query .= " AND c.offre_id = :offre_id";
             
@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $query .= " ORDER BY c.date_candidature DESC";
             
             $stmt = $db->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':ent_id', $ent_id);
             if ($offre_id) $stmt->bindParam(':offre_id', $offre_id);
             if ($statut && $statut !== 'accepte' && $statut !== 'refuse' && $statut !== 'en_attente' && $statut !== 'vue') {
                 $stmt->bindParam(':statut', $statut);
@@ -170,15 +170,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if ($action === 'recent_enterprise') {
-            $query = "SELECT c.*, u.nom, u.prenom, o.titre as offre_titre 
+            $query = "SELECT c.*, u.nom, u.prenom, o.title as offre_titre 
                       FROM candidatures c 
                       INNER JOIN users u ON c.user_id = u.id 
-                      INNER JOIN offres_stage o ON c.offre_id = o.id 
-                      WHERE o.user_id = :user_id 
+                      INNER JOIN offres o ON c.offre_id = o.id 
+                      WHERE o.entreprise_id = :ent_id 
                       ORDER BY c.date_candidature DESC LIMIT 5";
             
             $stmt = $db->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':ent_id', $ent_id);
             $stmt->execute();
             
             $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -200,17 +200,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         if ($action === 'details') {
             $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-            $query = "SELECT c.*, u.nom, u.prenom, u.email, o.titre as offre_titre, o.questions as offer_questions,
+            $query = "SELECT c.*, u.nom, u.prenom, u.email, o.title as offre_titre, o.questions as offer_questions,
                              p.cv_path as profil_cv_path, p.lettre_motivation_path as profil_lm_path
                       FROM candidatures c 
                       INNER JOIN users u ON c.user_id = u.id 
-                      INNER JOIN offres_stage o ON c.offre_id = o.id 
+                      INNER JOIN offres o ON c.offre_id = o.id 
                       LEFT JOIN profils p ON u.id = p.user_id 
-                      WHERE c.id = :id AND o.user_id = :user_id";
+                      WHERE c.id = :id AND o.entreprise_id = :ent_id";
             
             $stmt = $db->prepare($query);
             $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':ent_id', $ent_id);
             $stmt->execute();
             
             $c = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -245,13 +245,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         // Default: Récupérer les offres de l'entreprise avec leurs candidatures
-        $query_offres = "SELECT id, titre, entreprise, localisation, type_contrat, nombre_stagiaires, date_publication
-                         FROM offres_stage 
-                         WHERE user_id = :user_id 
+        $query_offres = "SELECT id, title as titre, entreprise, localisation, type_contrat, nombre_stagiaires, date_publication
+                         FROM offres 
+                         WHERE entreprise_id = :user_id 
                          ORDER BY date_publication DESC";
         
         $stmt_offres = $db->prepare($query_offres);
-        $stmt_offres->bindParam(':user_id', $user_id);
+        $stmt_offres->bindParam(':user_id', $ent_id);
         $stmt_offres->execute();
         $offres = $stmt_offres->fetchAll(PDO::FETCH_ASSOC);
         
@@ -312,6 +312,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         }
 
         if ($nouveau_statut === 'accepted' || $nouveau_statut === 'accepte') {
+            require_permission('can_accept_candidates', $db);
             $nouveau_statut = 'accepted';
             // Lock all other applications: set others to 'closed'
             $lock_stmt = $db->prepare("UPDATE candidatures SET statut = 'closed' WHERE user_id = :sid AND id != :cid");
@@ -350,6 +351,8 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = isset($_POST['email']) ? trim($_POST['email']) : '';
         $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
         $whatsapp = isset($_POST['whatsapp']) ? trim($_POST['whatsapp']) : '';
+
+        require_permission('can_accept_candidates', $db);
 
         if ($candidature_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'ID candidature invalide']);

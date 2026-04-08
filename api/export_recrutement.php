@@ -7,13 +7,13 @@
 session_start();
 require_once __DIR__ . '/../include/db_connect.php';
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin')) {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
     http_response_code(403);
     echo 'Accès refusé';
     exit;
 }
 
-$user_id = (int) $_SESSION['user_id'];
+$entreprise_id = (int)($_SESSION['entreprise_id'] ?? 0);
 $format = isset($_GET['format']) ? strtolower(trim($_GET['format'])) : 'csv';
 if (!in_array($format, ['csv', 'excel', 'pdf'], true)) {
     $format = 'csv';
@@ -36,14 +36,14 @@ $sql = "SELECT
             GROUP_CONCAT(n.note ORDER BY n.date_note SEPARATOR ' | ') AS notes
         FROM candidatures c
         INNER JOIN users u ON c.user_id = u.id
-        INNER JOIN offres_stage o ON c.offre_id = o.id
+        INNER JOIN offres o ON c.offre_id = o.id
         LEFT JOIN notes_candidatures n ON n.candidature_id = c.id
-        WHERE o.user_id = :uid
+        WHERE o.entreprise_id = :eid
         GROUP BY c.id, u.id, u.nom, u.prenom, u.email, u.telephone, o.titre, c.date_candidature, c.statut
         ORDER BY c.date_candidature DESC";
 
 $stmt = $db->prepare($sql);
-$stmt->execute([':uid' => $user_id]);
+$stmt->execute([':eid' => $entreprise_id]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Group rows by logical status
@@ -81,7 +81,7 @@ foreach ($rows as $row) {
 
 // Persist snapshot into its own table
 $timestamp = date('Ymd_His');
-$base_table = 'recruitment_export_' . $user_id . '_' . $timestamp;
+$base_table = 'recruitment_export_' . $entreprise_id . '_' . $timestamp;
 $table_name = preg_replace('/[^A-Za-z0-9_]/', '_', $base_table);
 
 try {
@@ -116,7 +116,7 @@ try {
         foreach ($items as $r) {
             $insert_stmt->execute([
                 ':exported_at'       => $exported_at,
-                ':entreprise_user_id'=> $user_id,
+                ':entreprise_user_id'=> $entreprise_id,
                 ':group_status'      => $gkey,
                 ':candidature_id'    => $r['candidature_id'],
                 ':student_user_id'   => $r['student_user_id'],
@@ -311,7 +311,7 @@ header('Content-Disposition: attachment; filename="recrutement_export_' . $times
 </head>
 <body>
     <h1>Rapport de recrutement</h1>
-    <p>Date d'export : <?= htmlspecialchars($exported_at) ?> &mdash; Entreprise ID #<?= (int) $user_id ?></p>
+    <p>Date d'export : <?= htmlspecialchars($exported_at) ?> &mdash; Entreprise ID #<?= (int) $entreprise_id ?></p>
 
     <?php
     $labels = [

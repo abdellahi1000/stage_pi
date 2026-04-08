@@ -1,0 +1,194 @@
+<?php
+require_once 'include/session.php';
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+    if ($_SESSION['user_type'] === 'entreprise') {
+        header("Location: enterprise/index.php");
+    } else {
+        header("Location: students/index.php");
+    }
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>StageMatch - Inscription</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/global.css"/>
+    <link rel="stylesheet" href="css/login.css?v=<?= filemtime('css/login.css'); ?>"/>
+    <script src="js/global.js" defer></script>
+    <script src="js/signup.js" defer></script>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- Section Gauche - Inscription -->
+    <div class="login-section">
+        <div class="login-content" style="max-width: 450px;">
+            <div class="mobile-branding">
+                <img src="img/logo_mobile.svg" alt="StageMatch Logo" class="mobile-logo">
+                <span class="mobile-app-name">Stage App</span>
+            </div>
+            <h2>Rejoignez-nous !</h2>
+            <p class="subtitle">Créez votre compte StageMatch en quelques secondes.</p>
+
+            <form id="signupForm" enctype="multipart/form-data">
+                <input type="hidden" id="userType" name="userType" value="etudiant">
+                
+                <div class="role-switch-container">
+                    <div class="role-info">
+                        <i class="fas fa-user-graduate" id="selectedTypeIcon" style="font-size: 24px;"></i>
+                        <span id="selectedTypeText" style="font-size: 16px;">Compte Étudiant</span>
+                    </div>
+                    <button type="button" class="switch-btn" id="changeTypeBtn" title="Changer de rôle">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path class="arrow-top" d="M17 2L21 6L17 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="line-top" d="M3 6H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="arrow-bottom" d="M7 22L3 18L7 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="line-bottom" d="M21 18H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Previous inputs ... -->
+                <div class="grid-form grid-2-cols" id="nameFields">
+                    <div class="input-group">
+                        <input type="text" id="nom" placeholder="Nom" required />
+                        <i class="fas fa-user" id="nomIcon"></i>
+                    </div>
+                    <div class="input-group" id="prenomGroup">
+                        <input type="text" id="prenom" placeholder="Prénom" required />
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <input type="email" id="email" placeholder="Adresse e-mail" required />
+                    <i class="fas fa-envelope"></i>
+                </div>
+
+                <div class="input-group">
+                    <input type="tel" id="telephone" name="telephone" placeholder="Numéro de téléphone" required />
+                    <i class="fas fa-phone"></i>
+                </div>
+
+                <!-- BEGIN ENTERPRISE SPECIFIC FIELDS -->
+                <div id="enterpriseFields" style="display: none; margin-top: 15px;">
+                    <div class="grid-form grid-2-cols mb-4">
+                        <div class="input-group">
+                            <input type="text" id="commercial_reg_num" name="commercial_reg_num" placeholder="Numéro de Registre de Commerce" />
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="tax_id" name="tax_id" placeholder="Numéro d'Identification Fiscale (NIF)" />
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <input type="text" id="address" name="address" placeholder="Adresse complète de l'entreprise" />
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+
+                    <div class="grid-form grid-2-cols mb-4">
+                        <div class="input-group">
+                            <select id="industry_sector" name="industry_sector" style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: #fff; font-size: 14px; appearance: none; cursor:pointer;" onchange="this.style.color=this.value===''?'rgba(255,255,255,0.7)':'#fff';">
+                                <option value="" disabled selected style="color: #333;">Secteur d'activité</option>
+                                <option value="Technologie & IT" style="color: #333;">Technologie & IT</option>
+                                <option value="Finance & Banque" style="color: #333;">Finance & Banque</option>
+                                <option value="Santé" style="color: #333;">Santé</option>
+                                <option value="Éducation" style="color: #333;">Éducation</option>
+                                <option value="Commerce & Distribution" style="color: #333;">Commerce & Distribution</option>
+                                <option value="Industrie & Énergie" style="color: #333;">Industrie & Énergie</option>
+                                <option value="Construction & BTP" style="color: #333;">Construction & BTP</option>
+                                <option value="Télécommunications" style="color: #333;">Télécommunications</option>
+                                <option value="Autre" style="color: #333;">Autre</option>
+                            </select>
+                            <i class="fas fa-briefcase" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6);"></i>
+                            <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                        </div>
+                        <div class="input-group">
+                            <select id="company_size" name="company_size" style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(0, 0, 0, 0.2); color: #fff; font-size: 14px; appearance: none; cursor:pointer;" onchange="this.style.color=this.value===''?'rgba(255,255,255,0.7)':'#fff';">
+                                <option value="" disabled selected style="color: #333;">Taille de l'entreprise</option>
+                                <option value="1-10" style="color: #333;">1-10 employés</option>
+                                <option value="11-50" style="color: #333;">11-50 employés</option>
+                                <option value="51-200" style="color: #333;">51-200 employés</option>
+                                <option value="201+" style="color: #333;">201+ employés</option>
+                            </select>
+                            <i class="fas fa-users" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6);"></i>
+                            <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); pointer-events: none;"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <input type="number" id="year_established" name="year_established" placeholder="Année de création (ex: 2010)" min="1800" max="2099" />
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+
+                    <div class="doc-upload-section" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin-bottom: 10px; font-size: 14px; color: #fff; font-weight: bold;">
+                            <i class="fas fa-file-pdf" style="margin-right: 5px; color: #ff5252;"></i> Documents Officiels (PDF uniquement)
+                        </p>
+                        <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 15px;">
+                            Seules les entreprises avec documents officiels pourront être vérifiées.
+                        </p>
+
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Registre de Commerce *</label>
+                            <input type="file" id="doc_registry" name="doc_registry" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
+                        </div>
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Numéro d'Identification Fiscale (NIF) *</label>
+                            <input type="file" id="doc_tax" name="doc_tax" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
+                        </div>
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <label style="display: block; font-size: 12px; margin-bottom: 5px; color: rgba(255,255,255,0.8);">Document cacheté/signé officiel *</label>
+                            <input type="file" id="doc_stamp" name="doc_stamp" accept=".pdf" style="padding: 10px; background: rgba(0,0,0,0.1);" />
+                        </div>
+                    </div>
+                </div>
+                <!-- END ENTERPRISE SPECIFIC FIELDS -->
+
+                <div class="grid-form grid-2-cols">
+                    <div class="input-group">
+                        <input type="password" id="password" placeholder="Mot de passe" required />
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="password_confirm" placeholder="Confirmer" required />
+                        <i class="fas fa-lock"></i>
+                    </div>
+                </div>
+                
+                <div class="options">
+                    <label class="custom-checkbox">
+                        <input type="checkbox" id="terms" required>
+                        <span class="checkmark"></span>
+                        J'accepte les conditions d'utilisation
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Créer mon compte</button>
+            </form>
+            
+            <p class="switch-text">Déjà un compte ? <a href="login.php">Se connecter</a></p>
+        </div>
+    </div>
+
+    <!-- Section Droite - Design/Photo -->
+    <div class="image-section">
+        <h1>Bâtissez votre<br>avenir aujourd'hui.</h1>
+        <p>Rejoignez la plus grande communauté d'étudiants et d'entreprises en Mauritanie.</p>
+        <p id="enterpriseWarningMsg" style="display: none; background: rgba(255,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,0,0,0.3); margin-top: 20px; font-weight: bold; color: #fff;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 5px; color: #ffeb3b;"></i>
+            Enterprise accounts are restricted to officially registered companies only.
+        </p>
+    </div>
+</div>
+
+</body>
+</html>
+

@@ -4,7 +4,7 @@ require_once '../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'etudiant') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'student') {
     echo json_encode(['success' => false, 'message' => 'Accès refusé']);
     exit;
 }

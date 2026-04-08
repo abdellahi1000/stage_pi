@@ -59,14 +59,19 @@ $sm_company_sizes = sm_get_company_sizes();
                     </button>
                 </div>
 
+                <div class="input-group" id="enterpriseNameGroup" style="display: none; margin-bottom: 20px;">
+                    <input type="text" id="company_name" name="company_name" placeholder="NOM DE L'ENTREPRISE" />
+                    <i class="fas fa-building"></i>
+                </div>
+
                 <!-- Previous inputs ... -->
                 <div class="grid-form grid-2-cols" id="nameFields">
                     <div class="input-group">
-                        <input type="text" id="nom" name="nom" placeholder="Nom" required />
-                        <i class="fas fa-user" id="nomIcon"></i>
+                        <input type="text" id="nom" name="nom" placeholder="Votre Nom (Admin)" required />
+                        <i class="fas fa-user"></i>
                     </div>
                     <div class="input-group" id="prenomGroup">
-                        <input type="text" id="prenom" name="prenom" placeholder="Prénom" required />
+                        <input type="text" id="prenom" name="prenom" placeholder="Votre Prénom" required />
                         <i class="fas fa-user"></i>
                     </div>
                 </div>
@@ -146,7 +151,7 @@ $sm_company_sizes = sm_get_company_sizes();
                             <i class="fas fa-file-pdf" style="margin-right: 5px; color: #ff5252;"></i> Documents Officiels (PDF uniquement)
                         </p>
                         <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 15px;">
-                            Seules les entreprises avec documents officiels pourront être vérifiées.
+                          Seules les entreprises avec documents officiels pourront être vérifiées.
                         </p>
 
                         <div class="space-y-3">

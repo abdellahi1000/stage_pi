@@ -1,0 +1,222 @@
+<?php 
+require_once '../include/session.php';
+check_auth('entreprise');
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gérer mes Offres - StageMatch</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="../css/global.css"/>
+    <link rel="stylesheet" href="../css/dashboards.css"/>
+    <link rel="stylesheet" href="../css/enterprise_offres.css"/>
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../js/global.js" defer></script>
+    <script src="../js/enterprise_offres.js?v=<?php echo time(); ?>" defer></script>
+</head>
+<body class="<?php include __DIR__ . '/../include/theme_body.php'; ?>">
+    <div class="flex">
+        <?php include '../include/sidebar.php'; ?>
+
+        <main class="flex-1 min-h-screen overflow-y-auto bg-gray-50 md:ml-64">
+            <!-- Mobile Toggle -->
+            <div class="md:hidden bg-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+                <div class="flex items-center space-x-2">
+                    <span class="font-bold text-blue-600">StageMatch</span>
+                </div>
+                <button id="sidebarToggle" class="text-gray-700 p-1"><i class="fas fa-bars text-xl"></i></button>
+            </div>
+<div class="max-w-5xl mx-auto px-6 py-10">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                    <div>
+                        <h1 class="text-4xl font-extrabold text-gray-900 mb-1">Mes Offres</h1>
+                        <p class="text-gray-500 font-medium">Gérez vos publications et votre visibilité en temps réel.</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <!-- Global Visibility Toggle -->
+                        <div class="bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:border-blue-100">
+                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Visibilité Profil</span>
+                            <label class="relative inline-flex items-center cursor-pointer scale-110">
+                                <input type="checkbox" id="global-visibility-toggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                            </label>
+                        </div>
+                        
+                        <button id="btnNewOffre" class="px-7 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center gap-3">
+                            <i class="fas fa-plus-circle text-lg"></i> Publier
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                    <div class="lg:col-span-2 relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchOffre" placeholder="Rechercher dans mes offres..." class="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-white focus:border-blue-500 outline-none transition-all shadow-sm">
+                    </div>
+
+                    <!-- Filter Dropdowns -->
+                    <div class="relative custom-dropdown" id="dropdownStatut">
+                        <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
+                            <span class="truncate text-gray-700 font-medium">Statut</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="">Tout</div>
+                            <div class="dropdown-item" data-value="active">Active</div>
+                            <div class="dropdown-item" data-value="archivee">Archivée</div>
+                        </div>
+                    </div>
+
+                    <div class="relative custom-dropdown" id="dropdownType">
+                        <button class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-white text-left flex justify-between items-center hover:border-blue-500 transition-all shadow-sm">
+                            <span class="truncate text-gray-700 font-medium">Type</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="dropdown-menu absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                            <div class="dropdown-item" data-value="">Tout</div>
+                            <div class="dropdown-item" data-value="Stage">Stage</div>
+                            <div class="dropdown-item" data-value="Alternance">Alternance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="offresGrid">
+                    <div class="col-span-full py-20 text-center">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                        <p class="text-gray-500 font-medium">Nous récupérons vos offres...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nouvelle/Modifier Offre -->
+    <div id="modalOffre" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4 shadow-2xl transform scale-95 transition-transform duration-300 overflow-hidden">
+            <div class="p-10">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-black text-gray-900" id="modalTitle">Nouvelle Offre</h2>
+                    <button class="close-modal w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"><i class="fas fa-times"></i></button>
+                </div>
+
+                <form id="formOffre" class="space-y-6">
+                    <input type="hidden" name="id" id="offreId">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Titre de l'offre</label>
+                            <input type="text" name="titre" required placeholder="Ex: Développeur PHP" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-mediu0:03 / 1:59
+                            m">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Localisation</label>
+                            <div class="relative custom-dropdown" id="formDropdownLocalisation">
+                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                                    <span class="truncate">Nouakchott</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
+                                </button>
+                                <input type="hidden" name="localisation" value="Nouakchott">
+                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item" data-value="Nouakchott">Nouakchott</div>
+                                    <div class="dropdown-item" data-value="Nouadhibou">Nouadhibou</div>
+                                    <div class="dropdown-item" data-value="Rosso">Rosso</div>
+                                    <div class="dropdown-item" data-value="Atar">Atar</div>
+                                    <div class="dropdown-item" data-value="Kaédi">Kaédi</div>
+                                    <div class="dropdown-item" data-value="Zouérat">Zouérat</div>
+                                    <div class="dropdown-item" data-value="Kiffa">Kiffa</div>
+                                    <div class="dropdown-item" data-value="Autre">Autre</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Type de Contrat</label>
+                            <div class="relative custom-dropdown" id="formDropdownType">
+                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                                    <span class="truncate">Stage</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
+                                </button>
+                                <input type="hidden" name="type_contrat" value="Stage">
+                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item" data-value="Stage">Stage</div>
+                                    <div class="dropdown-item" data-value="Alternance">Alternance</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Catégorie</label>
+                            <div class="relative custom-dropdown" id="formDropdownCategory">
+                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                                    <span class="truncate">Informatique</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
+                                </button>
+                                <input type="hidden" name="categorie_id" value="1">
+                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item" data-value="1">Informatique</div>
+                                    <div class="dropdown-item" data-value="2">Mines & Ressources</div>
+                                    <div class="dropdown-item" data-value="3">Télécommunications</div>
+                                    <div class="dropdown-item" data-value="4">Commerce & Marketing</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Nombre de stagiaires recherchés</label>
+                            <input type="number" name="nombre_stagiaires" min="1" max="99" value="1" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-bold shadow-sm" placeholder="Ex: 3">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Durée / Période</label>
+                            <input type="text" name="duree" placeholder="Ex: 3 mois" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Statut Individuel</label>
+                            <div class="relative custom-dropdown" id="formDropdownStatut">
+                                <button type="button" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 text-left flex justify-between items-center focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium">
+                                    <span class="truncate">Active</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform"></i>
+                                </button>
+                                <input type="hidden" name="statut" value="active">
+                                0:00 / 1:59
+                                
+                                <div class="dropdown-menu absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 opacity-0 invisible pointer-events-none translate-y-2 scale-95 transition-all duration-300">
+                                    <div class="dropdown-item" data-value="active">Active (Visible)</div>
+                                    <div class="dropdown-item" data-value="archivee">Archivée (Masquée)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Description succincte</label>
+                        <textarea name="description" required rows="3" placeholder="Quelles seront les missions du stagiaire ?" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none text-sm font-medium leading-relaxed"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-[1.25rem] font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                        <span>Enregistrer l'offre</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+

@@ -10,7 +10,14 @@ if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' &
 }
 
 $is_global_admin = $_SESSION['user_type'] === 'admin';
-$company_id = $_SESSION['company_id'];
+// Use entreprise_id as primary, fallback to user_id (same as in admin_company_offers.php)
+$company_id = $_SESSION['entreprise_id'] ?? $_SESSION['user_id'];
+
+if (!$company_id) {
+    echo json_encode(['success' => false, 'message' => 'ID entreprise manquant.']);
+    exit;
+}
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -50,27 +57,28 @@ try {
         }
         exit;
     }
+
     if ($action === 'list') {
-        // Global admin sees ALL applications; enterprise sees only theirs
+        // Use o.title instead of o.titre (Actual column is title)
         if ($is_global_admin) {
             $stmt = $db->prepare("SELECT c.*, u.nom, u.prenom, u.email, u.telephone, 
-                                         o.titre as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
+                                         o.title as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
                                          p.specialite, p.universite, p.skills, p.domaine_formation, p.niveau_etudes,
                                          r.nom as recruteur_nom
                                   FROM candidatures c 
                                   JOIN users u ON c.user_id = u.id 
-                                  JOIN offres_stage o ON c.offre_id = o.id 
+                                  JOIN offres o ON c.offre_id = o.id 
                                   LEFT JOIN profils p ON u.id = p.user_id
                                   LEFT JOIN users r ON o.user_id = r.id
                                   ORDER BY c.date_candidature DESC");
             $stmt->execute();
         } else {
             $stmt = $db->prepare("SELECT c.*, u.nom, u.prenom, u.email, u.telephone, 
-                                         o.titre as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
+                                         o.title as offre_titre, o.user_id as recruteur_id, o.type_contrat, o.questions as offer_questions,
                                          p.specialite, p.universite, p.skills, p.domaine_formation, p.niveau_etudes
                                   FROM candidatures c 
                                   JOIN users u ON c.user_id = u.id 
-                                  JOIN offres_stage o ON c.offre_id = o.id 
+                                  JOIN offres o ON c.offre_id = o.id 
                                   LEFT JOIN profils p ON u.id = p.user_id
                                   WHERE o.user_id = :cid 
                                   ORDER BY c.date_candidature DESC");
@@ -87,11 +95,12 @@ try {
         if ($app_id && in_array($status, ['accepted', 'rejected', 'pending'])) {
             // Verify ownership within company
             $stmt_v = $db->prepare("SELECT c.id FROM candidatures c 
-                                    JOIN offres_stage o ON c.offre_id = o.id 
+                                    JOIN offres o ON c.offre_id = o.id 
                                     WHERE c.id = :id AND o.user_id = :cid");
             $stmt_v->execute([':id' => $app_id, ':cid' => $company_id]);
             
             if ($stmt_v->rowCount() > 0) {
+                // Ensure acceptance_date column exists or check for failure (safeguard)
                 $stmt = $db->prepare("UPDATE candidatures SET statut = :status, vu_par_etudiant = 0, acceptance_date = (CASE WHEN :status = 'accepted' THEN NOW() ELSE acceptance_date END) WHERE id = :id");
                 $stmt->execute([
                     ':status' => $status,
@@ -122,7 +131,7 @@ try {
 
             // Also reject all current pending applications from this student for this company
             $stmt_rej = $db->prepare("UPDATE candidatures c 
-                                      JOIN offres_stage o ON c.offre_id = o.id 
+                                      JOIN offres o ON c.offre_id = o.id 
                                       SET c.statut = 'rejected' 
                                       WHERE c.user_id = :sid AND o.user_id = :cid AND c.statut = 'pending'");
             $stmt_rej->execute([':sid' => $student_id, ':cid' => $company_id]);
@@ -134,6 +143,6 @@ try {
     }
 
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Erreur SQL : ' . $e->getMessage()]);
 }
 ?>

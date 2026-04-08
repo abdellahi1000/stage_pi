@@ -1,7 +1,7 @@
 <?php 
 require_once '../include/session.php';
 require_once '../include/lookups.php';
-check_auth('entreprise', 'Administrator');
+check_auth('admin');
 ?>
 <!DOCTYPE html>
 <html lang="fr">

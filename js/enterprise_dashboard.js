@@ -8,9 +8,11 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          document.getElementById("stat-offres").textContent = data.stats.active_offers || 0;
-          document.getElementById("stat-candidats").textContent = data.stats.total_applications || 0;
-          document.getElementById("stat-recrutements").textContent = data.stats.accepted || 0;
+          if (document.getElementById("stat-offres")) document.getElementById("stat-offres").textContent = data.stats.active_offers || 0;
+          if (document.getElementById("stat-candidats")) document.getElementById("stat-candidats").textContent = data.stats.total_applications || 0;
+          if (document.getElementById("stat-accepted-stagiaires")) document.getElementById("stat-accepted-stagiaires").textContent = data.stats.accepted_stagiaires || 0;
+          if (document.getElementById("stat-accepted-alternances")) document.getElementById("stat-accepted-alternances").textContent = data.stats.accepted_alternances || 0;
+          
           if (document.getElementById("stat-messages")) {
             const count = data.stats.total_messages || 0;
             document.getElementById("stat-messages").textContent = count;

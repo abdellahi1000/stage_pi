@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/db_connect.php';
-$is_entreprise = isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'entreprise';
+$is_entreprise = isset($_SESSION['user_role']) && ($_SESSION['user_role'] === 'admin' || $_SESSION['user_role'] === 'employee');
 $current_page = basename($_SERVER['PHP_SELF']);
 
 // Notification system
@@ -9,8 +9,8 @@ if (isset($_SESSION['user_id'])) {
     $db_notif = (new Database())->getConnection();
     if ($is_entreprise) {
         // Count new candidatures (pending AND not viewed) for company
-        $stmt_notif = $db_notif->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres_stage o ON c.offre_id = o.id WHERE o.user_id = ? AND c.statut = 'pending' AND c.vu_par_entreprise = 0");
-        $stmt_notif->execute([$_SESSION['user_id']]);
+        $stmt_notif = $db_notif->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres o ON c.offre_id = o.id WHERE o.entreprise_id = ? AND c.statut = 'pending' AND c.vu_par_entreprise = 0");
+        $stmt_notif->execute([$_SESSION['entreprise_id']]);
         $notif_count = $stmt_notif->fetchColumn();
     } else {
         // Count unread responses for student (statut changed from pending)
@@ -21,7 +21,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Define links based on role
-$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Administrator';
+$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $profile_link = $is_admin ? 'account.php' : ($is_entreprise ? 'compte.php' : 'compte.php');
 $offres_link = $is_admin ? 'offers.php' : 'offres.php';
 $apps_link = $is_admin ? 'applications.php' : ($is_entreprise ? 'gerer_candidatures.php' : 'mes_candidatures.php');
@@ -53,7 +53,7 @@ $apps_link = $is_admin ? 'applications.php' : ($is_entreprise ? 'gerer_candidatu
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-black truncate text-white"><?php echo $is_entreprise ? ucwords($_SESSION['company_name'] ?? 'Entreprise') : ucwords($_SESSION['user_prenom'] ?? 'Étudiant'); ?></p>
-                <p class="text-[10px] uppercase tracking-wider text-blue-200 opacity-60 font-bold"><?php echo $is_admin ? 'Administration' : ($is_entreprise ? 'Espace Entreprise' : 'Espace Étudiant'); ?></p>
+                <p class="text-[10px] uppercase tracking-wider text-blue-200 opacity-60 font-bold"><?php echo $is_admin ? 'ESPACE ADMINISTRATION' : ($is_entreprise ? 'ESPACE ENTREPRISE' : 'ESPACE ÉTUDIANT'); ?></p>
             </div>
         </div>
 

@@ -4,66 +4,53 @@ require_once '../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' && $_SESSION['user_type'] !== 'admin')) {
+if (!isset($_SESSION['logged_in']) || ($_SESSION['user_role'] !== 'admin' && $_SESSION['user_role'] !== 'employee')) {
     echo json_encode(['success' => false, 'message' => 'Accès non autorisé']);
     exit;
 }
 
-$company_id = $_SESSION['company_id'];
+$entreprise_id = $_SESSION['entreprise_id'] ?? 0;
 $database = new Database();
 $db = $database->getConnection();
+
+if (!$entreprise_id) {
+    echo json_encode(['success' => false, 'message' => 'Aucune entreprise associée à ce compte']);
+    exit;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'GET') {
-        $stmt = $db->prepare("SELECT id, nom, slogan, bio, industry_sector, company_size, website_url, adresse as siege, photo_profil, email 
-                              FROM users WHERE id = :cid");
-        $stmt->execute([':cid' => $company_id]);
+        $stmt = $db->prepare("SELECT id, name as nom, secteur as industry_sector, taille as company_size, adresse as siege, registre, num_fiscal, document_pdf, 
+                                     slogan, website_url, bio, photo_profil
+                              FROM entreprises WHERE id = :eid");
+        $stmt->execute([':eid' => $entreprise_id]);
         $company = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // No longer using password_admin
-        $company['has_admin_password'] = true; // Default to true since we use main password
-        
+
+        $company['has_admin_password'] = true;
         echo json_encode(['success' => true, 'company' => $company]);
 
     } elseif ($method === 'POST') {
-        // Check if it's a file upload (logo)
+        // multipart/form-data for logo upload
         if (isset($_FILES['logo'])) {
             $file = $_FILES['logo'];
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = "uploads/logos/company_" . $entreprise_id . "_" . time() . "." . $ext;
             
-            if (!in_array($ext, $allowed)) {
-                echo json_encode(['success' => false, 'message' => 'Format de fichier non autorisé']);
-                exit;
-            }
+            if (!is_dir("../uploads/logos")) mkdir("../uploads/logos", 0777, true);
             
-            $filename = 'logo_' . $company_id . '_' . time() . '.' . $ext;
-            $path = '../uploads/logos/' . $filename;
-            
-            if (!is_dir('../uploads/logos/')) {
-                mkdir('../uploads/logos/', 0777, true);
-            }
-            
-            if (move_uploaded_file($file['tmp_name'], $path)) {
-                $db_path = 'uploads/logos/' . $filename;
-                $stmt = $db->prepare("UPDATE users SET photo_profil = :photo WHERE id = :cid");
-                $stmt->execute([':photo' => $db_path, ':cid' => $company_id]);
-                
-                // Update session if it's the current user's company
-                if ($_SESSION['user_id'] == $company_id) {
-                    $_SESSION['photo_profil'] = $db_path;
-                }
-                
-                echo json_encode(['success' => true, 'message' => 'Logo mis à jour', 'path' => $db_path]);
+            if (move_uploaded_file($file['tmp_name'], "../" . $filename)) {
+                $up = $db->prepare("UPDATE entreprises SET photo_profil = :path WHERE id = :eid");
+                $up->execute([':path' => $filename, ':eid' => $entreprise_id]);
+                echo json_encode(['success' => true, 'path' => $filename]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Erreur lors du transfert du fichier']);
             }
             exit;
         }
 
-        // Handle profile updates (JSON)
+        // JSON for profile details
         $json = file_get_contents('php://input');
         $data = json_decode($json, true);
         
@@ -72,37 +59,42 @@ try {
              exit;
         }
 
-        $nom = $data['nom'] ?? '';
-        $slogan = $data['slogan'] ?? '';
-        $secteur = $data['secteur'] ?? '';
-        $taille = $data['taille'] ?? '';
-        $site_web = $data['site_web'] ?? '';
+        $nom = strtoupper(trim($data['nom'] ?? ''));
+        $secteur = $data['industry_sector'] ?? $data['secteur'] ?? '';
+        $taille = $data['company_size'] ?? $data['taille'] ?? '';
         $siege = $data['siege'] ?? '';
-        $bio = $data['description'] ?? '';
+        $slogan = $data['slogan'] ?? '';
+        $site_web = $data['site_web'] ?? '';
+        $description = $data['description'] ?? '';
+        
+        if (empty($nom)) {
+            echo json_encode(['success' => false, 'message' => 'Le nom de l\'entreprise est obligatoire']);
+            exit;
+        }
 
-        $stmt = $db->prepare("UPDATE users SET 
-                                nom = :nom,
-                                slogan = :slogan, 
-                                bio = :bio, 
-                                industry_sector = :secteur, 
-                                company_size = :taille, 
-                                website_url = :site, 
-                                adresse = :siege 
-                              WHERE id = :cid");
+        $stmt = $db->prepare("UPDATE entreprises SET 
+                                name = :nom,
+                                secteur = :secteur, 
+                                taille = :taille, 
+                                adresse = :siege,
+                                slogan = :slogan,
+                                website_url = :site,
+                                bio = :bio
+                              WHERE id = :eid");
         $stmt->execute([
             ':nom' => $nom,
-            ':slogan' => $slogan,
-            ':bio' => $bio,
             ':secteur' => $secteur,
             ':taille' => $taille,
-            ':site' => $site_web,
             ':siege' => $siege,
-            ':cid' => $company_id
+            ':slogan' => $slogan,
+            ':site' => $site_web,
+            ':bio' => $description,
+            ':eid' => $entreprise_id
         ]);
 
+        $_SESSION['company_name'] = $nom;
         echo json_encode(['success' => true, 'message' => 'Profil de l\'entreprise mis à jour avec succès']);
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
 }
-?>

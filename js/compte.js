@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const oldPw = formData.get('old_password') || '';
       const newPw = formData.get('new_password') || '';
       const confirmPw = formData.get('confirm_password') || '';
-      if (oldPw || newPw || confirmPw) {
+      if (newPw || confirmPw) {
         if (!oldPw || !newPw || !confirmPw) {
           showMessage("Veuillez remplir tous les champs de mot de passe.", "warning");
           return;

@@ -4,12 +4,12 @@ require_once '../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_role'] !== 'Administrator') {
-    echo json_encode(['success' => false, 'message' => 'Accès non autorisé']);
+if (!isset($_SESSION['logged_in']) || $_SESSION['user_role'] !== 'admin') {
+    echo json_encode(['success' => false, 'message' => 'Accès non autorisé : seul l\'administrateur peut gérer les permissions']);
     exit;
 }
 
-$company_id = $_SESSION['company_id'] ?? $_SESSION['user_id'] ?? 0;
+$ent_id = $_SESSION['entreprise_id'] ?? 0;
 $user_id = $_SESSION['user_id'];
 $database = new Database();
 $db = $database->getConnection();
@@ -21,8 +21,8 @@ try {
         // List all other users (employees) for this company
         $stmt = $db->prepare("SELECT id, nom, email, prenom, can_create_offers, can_edit_offers, can_delete_offers, can_manage_candidates, can_block_users 
                               FROM users 
-                              WHERE company_id = :cid AND id != :uid");
-        $stmt->execute([':cid' => $company_id, ':uid' => $user_id]);
+                              WHERE entreprise_id = :cid AND id != :uid");
+        $stmt->execute([':cid' => $ent_id, ':uid' => $user_id]);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'collaborators' => $users]);
 
@@ -37,8 +37,8 @@ try {
 
         if ($target_id) {
             // Verify target user belongs to the same company
-            $stmt_v = $db->prepare("SELECT id FROM users WHERE id = :tid AND company_id = :cid");
-            $stmt_v->execute([':tid' => $target_id, ':cid' => $company_id]);
+            $stmt_v = $db->prepare("SELECT id FROM users WHERE id = :tid AND entreprise_id = :cid");
+            $stmt_v->execute([':tid' => $target_id, ':cid' => $ent_id]);
             
             if ($stmt_v->rowCount() > 0) {
                 $stmt = $db->prepare("UPDATE users SET 

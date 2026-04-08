@@ -1,10 +1,11 @@
 <?php
 require_once 'include/session.php';
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
-    if ($_SESSION['user_type'] === 'admin') {
+    $role = $_SESSION['user_role'] ?? '';
+    if ($role === 'admin') {
         header("Location: administrator/index.php");
-    } elseif ($_SESSION['user_type'] === 'entreprise') {
-        header("Location: " . (($_SESSION['user_role'] === 'Administrator') ? "administrator/index.php" : "enterprise/index.php"));
+    } elseif ($role === 'employee') {
+        header("Location: enterprise/index.php");
     } else {
         header("Location: students/index.php");
     }

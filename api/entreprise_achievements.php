@@ -8,12 +8,12 @@ require_once __DIR__ . '/../include/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'entreprise') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
     echo json_encode(['success' => false, 'message' => 'Accès refusé']);
     exit;
 }
 
-$user_id = (int) $_SESSION['user_id'];
+$entreprise_id = (int)($_SESSION['entreprise_id'] ?? 0);
 $database = new Database();
 $db = $database->getConnection();
 
@@ -21,15 +21,15 @@ $db = $database->getConnection();
 try {
     $db->exec("CREATE TABLE IF NOT EXISTS entreprise_achievements (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
+        entreprise_id INT NOT NULL,
         type VARCHAR(50) NOT NULL DEFAULT 'website',
         title VARCHAR(255) NOT NULL,
         description TEXT NULL,
         url VARCHAR(500) NULL,
         sort_order INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user (user_id),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        INDEX idx_entreprise (entreprise_id),
+        FOREIGN KEY (entreprise_id) REFERENCES entreprises(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erreur base de données']);
@@ -41,8 +41,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 // GET: list achievements for current enterprise
 if ($method === 'GET') {
     try {
-        $stmt = $db->prepare("SELECT id, type, title, description, url, sort_order, created_at FROM entreprise_achievements WHERE user_id = :uid ORDER BY sort_order ASC, id ASC");
-        $stmt->execute([':uid' => $user_id]);
+        $stmt = $db->prepare("SELECT id, type, title, description, url, sort_order, created_at FROM entreprise_achievements WHERE entreprise_id = :eid ORDER BY sort_order ASC, id ASC");
+        $stmt->execute([':eid' => $entreprise_id]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'achievements' => $rows]);
     } catch (PDOException $e) {
@@ -67,9 +67,9 @@ if ($method === 'POST') {
     }
 
     try {
-        $stmt = $db->prepare("INSERT INTO entreprise_achievements (user_id, type, title, description, url, sort_order) VALUES (:uid, :type, :title, :desc, :url, 0)");
+        $stmt = $db->prepare("INSERT INTO entreprise_achievements (entreprise_id, type, title, description, url, sort_order) VALUES (:eid, :type, :title, :desc, :url, 0)");
         $stmt->execute([
-            ':uid' => $user_id,
+            ':eid' => $entreprise_id,
             ':type' => $type,
             ':title' => $title,
             ':desc' => $description,
@@ -101,7 +101,7 @@ if ($method === 'PUT') {
 
     try {
         $updates = [];
-        $params = [':id' => $id, ':uid' => $user_id];
+        $params = [':id' => $id, ':eid' => $entreprise_id];
         if ($type !== null) { $updates[] = 'type = :type'; $params[':type'] = $type; }
         if ($title !== null) { $updates[] = 'title = :title'; $params[':title'] = $title; }
         if ($description !== null) { $updates[] = 'description = :description'; $params[':description'] = $description; }
@@ -110,7 +110,7 @@ if ($method === 'PUT') {
             echo json_encode(['success' => false, 'message' => 'Rien à modifier']);
             exit;
         }
-        $sql = "UPDATE entreprise_achievements SET " . implode(', ', $updates) . " WHERE id = :id AND user_id = :uid";
+        $sql = "UPDATE entreprise_achievements SET " . implode(', ', $updates) . " WHERE id = :id AND entreprise_id = :eid";
         $stmt = $db->prepare($sql);
         foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->execute();
@@ -130,8 +130,8 @@ if ($method === 'DELETE') {
         exit;
     }
     try {
-        $stmt = $db->prepare("DELETE FROM entreprise_achievements WHERE id = :id AND user_id = :uid");
-        $stmt->execute([':id' => $id, ':uid' => $user_id]);
+        $stmt = $db->prepare("DELETE FROM entreprise_achievements WHERE id = :id AND entreprise_id = :eid");
+        $stmt->execute([':id' => $id, ':eid' => $entreprise_id]);
         echo json_encode(['success' => true, 'message' => 'Supprimé']);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);

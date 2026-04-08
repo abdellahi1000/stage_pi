@@ -1,7 +1,7 @@
 <?php 
 require_once '../include/session.php';
 // Check for manager role specifically
-check_auth('entreprise', 'Administrator');
+check_auth('admin');
 
 
 ?>
@@ -45,7 +45,7 @@ check_auth('entreprise', 'Administrator');
                         <span class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-widest mb-6">Administrateur Société</span>
                         <h1 class="text-4xl md:text-5xl font-black mb-4 leading-tight">
                             Tableau de Bord, <br>
-                            <span class="text-blue-200"><?php echo $_SESSION['user_nom'] ?? 'Admin'; ?></span>
+                            <span class="text-blue-200"><?php echo $_SESSION['company_name'] ?? 'Admin'; ?></span>
                         </h1>
                         <p class="text-blue-100/80 text-lg max-w-lg font-medium leading-relaxed">
                             Gérez les offres de stage et les candidatures de votre entreprise en toute simplicité.
@@ -68,8 +68,8 @@ check_auth('entreprise', 'Administrator');
                         </div>
                     </div>
                     <!-- Stat Card: Applications -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-purple-500 transition-all duration-300">
-                        <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-indigo-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div>
@@ -77,34 +77,34 @@ check_auth('entreprise', 'Administrator');
                             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Candidatures</p>
                         </div>
                     </div>
-                    <!-- Stat Card: Accepted -->
+                    <!-- Stat Card: Stagiaires Acceptés -->
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-green-500 transition-all duration-300">
                         <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-all">
-                            <i class="fas fa-user-check"></i>
+                            <i class="fas fa-user-graduate"></i>
                         </div>
                         <div>
-                            <p class="text-2xl font-black text-gray-900" id="stat-accepted">0</p>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Étudiants Acceptés</p>
+                            <p class="text-2xl font-black text-gray-900" id="stat-accepted-stagiaires">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Stagiaires Acceptés</p>
                         </div>
                     </div>
-                    <!-- Stat Card: Rejected -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-red-500 transition-all duration-300">
-                        <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 group-hover:bg-red-600 group-hover:text-white transition-all">
+                    <!-- Stat Card: Alternances Acceptées -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-purple-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-black text-gray-900" id="stat-accepted-alternances">0</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Alternances Acceptées</p>
+                        </div>
+                    </div>
+                    <!-- Stat Card: Refusés -->
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-rose-500 transition-all duration-300">
+                        <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all">
                             <i class="fas fa-user-times"></i>
                         </div>
                         <div>
                             <p class="text-2xl font-black text-gray-900" id="stat-rejected">0</p>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Étudiants Refusés</p>
-                        </div>
-                    </div>
-                    <!-- Stat Card: Blocked -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 group hover:border-gray-800 transition-all duration-300">
-                        <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-600 group-hover:bg-gray-800 group-hover:text-white transition-all">
-                            <i class="fas fa-user-slash"></i>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-black text-gray-900" id="stat-blocked">0</p>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Étudiants Bloqués</p>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Candidatures Refusées</p>
                         </div>
                     </div>
                 </div>

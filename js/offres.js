@@ -63,6 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
+          window.allOffres = data.offres;
           renderOffres(data.offres, data.total_active_candidatures, data.is_accepted_globally);
         } else {
           grid.innerHTML = `<p class="col-span-full text-center py-10 text-red-500">${data.message}</p>`;
@@ -160,32 +161,25 @@ document.addEventListener("DOMContentLoaded", () => {
                             <i class="fas fa-building text-xl"></i>
                         </div>
                         <div class="flex flex-col">
-                            <span class="font-semibold text-base text-gray-500 hover:text-blue-600 transition-colors">${esc(o.entreprise)}</span>
-                            ${parseInt(o.verified_status) === 1 ? `<i class="fas fa-check-circle text-yellow-500 text-sm" title="This company is officially verified"></i>` : ''}
+                            <span class="text-gray-900 text-[13px] font-black uppercase tracking-tighter">${esc(o.entreprise || 'Tasiast')}</span>
                         </div>
                     </div>
                     <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider group-hover:bg-blue-600 group-hover:text-white transition-colors">
                         ${esc(o.type_contrat)}
                     </span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">${esc(o.titre)}</h3>
-                ${o.specialization ? `<p class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><i class="fas fa-microchip text-[9px]"></i> ${esc(o.specialization)}</p>` : ''}
-                
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="flex items-center text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
-                        <i class="fas fa-map-marker-alt text-blue-400 mr-2"></i>
-                        <span class="truncate">${esc(o.localisation)}</span>
-                    </div>
-                    <div class="flex items-center text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
-                        <i class="fas fa-clock text-blue-400 mr-2"></i>
-                        <span class="truncate">${esc(o.duree || "N/A")}</span>
-                    </div>
+                <h3 class="text-lg font-black text-gray-900 mb-1 leading-tight group-hover:text-blue-600 transition-colors truncate" title="${esc(o.titre)}">${esc(o.titre)}</h3>
+                <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">${esc(o.entreprise)}</p>
+                <div class="flex items-center gap-2 mb-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span>${esc(o.localisation)}</span>
+                    <span class="w-1 h-1 rounded-full bg-gray-200"></span>
+                    <span class="text-blue-600/70">${esc(o.specialization || 'Général')}</span>
                 </div>
-
-                <div class="flex items-center justify-between mb-4">
-                    <p class="text-[10px] font-black uppercase tracking-wider text-blue-500 flex items-center gap-1.5 bg-blue-50/50 w-fit px-2 py-1.5 rounded-lg border border-blue-100/50 mb-0">
-                        <i class="fas fa-users-viewfinder text-xs"></i> <span>Recherche : <strong>${o.nombre_stagiaires || 1}</strong> stagiaire(s)</span>
-                    </p>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex flex-col gap-1">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">${esc(o.localisation)} • ${esc(o.duree || "N/A")}</p>
+                    </div>
                     <button onclick="toggleFavorite(${o.id}, this)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-300 ${parseInt(o.is_favorited) > 0 ? 'bg-red-50 border-red-100 text-red-500 shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-100'}" title="${parseInt(o.is_favorited) > 0 ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
                         <i class="${parseInt(o.is_favorited) > 0 ? 'fas' : 'far'} fa-heart"></i>
                         <span class="text-xs font-black fav-count">${o.total_favorites || 0}</span>
@@ -201,11 +195,322 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 ` : ''}
 
+                <!-- Dual Document Cards -->
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div onclick="openDescriptionModal(${o.id})" class="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col gap-2 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group/doc">
+                        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm group-hover/doc:bg-blue-600 group-hover/doc:text-white transition-all">
+                            <i class="fas fa-file-alt text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[9px] font-black text-gray-900 uppercase tracking-tighter truncate">DESCRIPTION OFFRE.PDF</p>
+                        </div>
+                    </div>
+
+                    <div onclick="openQuestionsModal(${o.id})" class="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col gap-2 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-all group/doc ${!o.questions ? 'opacity-40 grayscale cursor-not-allowed' : ''}">
+                        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-red-500 shadow-sm group-hover/doc:bg-red-500 group-hover/doc:text-white transition-all">
+                            <i class="fas fa-file-pdf text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[9px] font-black text-gray-900 uppercase tracking-tighter truncate">QUESTIONS CANDIDATS.PDF</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="p-3 bg-blue-50/30 rounded-2xl border border-blue-100/30">
+                        <p class="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Stage</p>
+                        <p class="text-sm font-black text-gray-900">${o.nombre_stagiaires || 0} <span class="text-[9px] font-bold text-gray-400">Places</span></p>
+                    </div>
+                    <div class="p-3 bg-purple-50/30 rounded-2xl border border-purple-100/30">
+                        <p class="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em] mb-1">Alternance</p>
+                        <p class="text-sm font-black text-gray-900">${o.places_alternances || 0} <span class="text-[9px] font-bold text-gray-400">Places</span></p>
+                    </div>
+                </div>
+
                 ${buttonHtml}
             `;
       grid.appendChild(card);
     });
   }
+
+  window.postuler = (id) => {
+    const o = window.allOffres.find(offre => offre.id == id);
+    if (!o) return;
+
+    // Create modal for application details if not exists
+    let modal = document.getElementById('modalPostuler');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalPostuler';
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300';
+        modal.innerHTML = `
+            <div class="bg-white rounded-[2.5rem] w-full max-w-xl p-10 shadow-2xl transform scale-95 transition-all duration-300 overflow-y-auto max-h-[90vh]">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                        <i class="fas fa-paper-plane text-blue-600"></i> Postuler à l'offre
+                    </h2>
+                    <button onclick="closePostulerModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="formPostuler" class="space-y-6">
+                    <input type="hidden" name="offre_id">
+                    
+                    <div id="typeContratSelection" class="space-y-3 hidden border-b border-gray-50 pb-6 mb-6">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Type de candidature souhaité</label>
+                        <div class="flex gap-4">
+                            <label class="flex-1 cursor-pointer group">
+                                <input type="radio" name="type_contrat" value="Stage" checked class="hidden peer">
+                                <div class="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 transition-all text-center">
+                                    <p class="text-xs font-black text-gray-600 peer-checked:text-blue-600">Stage</p>
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer group" id="alternanceOption">
+                                <input type="radio" name="type_contrat" value="Alternance" class="hidden peer">
+                                <div class="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 peer-checked:bg-purple-50 peer-checked:border-purple-500 transition-all text-center">
+                                    <p class="text-xs font-black text-gray-600 peer-checked:text-purple-600">Alternance</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="questionsForm" class="space-y-4"></div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Message de motivation (Optionnel)</label>
+                        <textarea name="message_motivation" rows="4" class="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none text-sm" placeholder="Expliquez pourquoi vous êtes le candidat idéal..."></textarea>
+                    </div>
+
+                    <div class="pt-6 border-t border-gray-50">
+                        <button type="submit" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-gray-100">Envoyer ma candidature</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    const form = modal.querySelector('#formPostuler');
+    form.offre_id.value = id;
+    
+    // Check if both Stage and Alternance are possible
+    const typeSelection = modal.querySelector('#typeContratSelection');
+    const alternanceOpt = modal.querySelector('#alternanceOption');
+    if (o.nombre_stagiaires > 0 && o.places_alternances > 0) {
+        typeSelection.classList.remove('hidden');
+        alternanceOpt.classList.remove('hidden');
+    } else if (o.places_alternances > 0) {
+        typeSelection.classList.remove('hidden');
+        form.type_contrat.value = "Alternance";
+    } else {
+        typeSelection.classList.add('hidden');
+        form.type_contrat.value = "Stage";
+    }
+
+    const questionsContainer = modal.querySelector('#questionsForm');
+    questionsContainer.innerHTML = '';
+    const questions = o.questions ? o.questions.split('\n').filter(q => q.trim() !== '') : [];
+    
+    if (questions.length > 0) {
+        questionsContainer.innerHTML = '<p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Questions de l\'entreprise</p>';
+        questions.forEach((q, i) => {
+            questionsContainer.innerHTML += `
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold text-gray-700">${esc(q)}</label>
+                    <textarea name="reponse_${i}" required class="w-full px-5 py-3 rounded-xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm" placeholder="Votre réponse..."></textarea>
+                </div>
+            `;
+        });
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('opacity-100'), 10);
+    modal.querySelector('.transform').classList.remove('scale-95');
+    modal.querySelector('.transform').classList.add('scale-100');
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        
+        // Handle question-response formatting
+        const responses = [];
+        questions.forEach((q, i) => {
+            responses.push({
+                question: q,
+                reponse: formData.get(`reponse_${i}`)
+            });
+        });
+        
+        const data = {
+            action: 'postuler',
+            offre_id: id,
+            message_motivation: formData.get('message_motivation'),
+            type_contrat: formData.get('type_contrat') || 'Stage',
+            reponses_questions: JSON.stringify(responses)
+        };
+
+        fetch('../api/candidatures.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closePostulerModal();
+                // Assuming showMessage is defined elsewhere
+                if(typeof showMessage === 'function') showMessage("Candidature envoyée avec succès !", "success");
+                loadOffres();
+            } else {
+                if(typeof showMessage === 'function') showMessage(data.message || "Erreur lors de l'envoi", "error");
+            }
+        });
+    };
+  };
+
+  window.closePostulerModal = () => {
+    const modal = document.getElementById('modalPostuler');
+    if (!modal) return;
+    modal.classList.remove('opacity-100');
+    modal.querySelector('.transform').classList.remove('scale-100');
+    modal.querySelector('.transform').classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+  };
+
+  window.openQuestionsModal = (id) => {
+    const o = window.allOffres.find(offre => offre.id == id);
+    if (!o || !o.questions) return;
+
+    let modal = document.getElementById('modalQuestions');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalQuestions';
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300';
+        modal.innerHTML = `
+            <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                        <i class="fas fa-file-pdf text-red-500"></i> Questions Candidats
+                    </h2>
+                    <button onclick="closeQuestionsModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="questionsContent" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                </div>
+                <div class="mt-8 pt-8 border-t border-gray-50 flex gap-4">
+                    <button onclick="closeQuestionsModal(); postuler(${id})" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all group">
+                        Répondre & Postuler <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                    <button onclick="closeQuestionsModal()" class="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">Fermer</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeQuestionsModal(); });
+    }
+
+    const content = modal.querySelector('#questionsContent');
+    const questions = o.questions.split('\n').filter(q => q.trim() !== '');
+    content.innerHTML = questions.map((q, i) => `
+        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Question #${i+1}</p>
+            <p class="text-sm font-bold text-gray-900 leading-relaxed">${q}</p>
+        </div>
+    `).join('');
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('.transform').classList.remove('scale-95');
+        modal.querySelector('.transform').classList.add('scale-100');
+    }, 10);
+  };
+
+  window.closeQuestionsModal = () => {
+    const modal = document.getElementById('modalQuestions');
+    if (!modal) return;
+    modal.classList.remove('opacity-100');
+    modal.querySelector('.transform').classList.remove('scale-100');
+    modal.querySelector('.transform').classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+  };
+
+  window.openDescriptionModal = (id) => {
+    const o = window.allOffres.find(offre => offre.id == id);
+    if (!o) return;
+
+    let modal = document.getElementById('modalDescriptionDocs');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalDescriptionDocs';
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300';
+        modal.innerHTML = `
+            <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-10 shadow-2xl transform scale-95 transition-all duration-300 text-left">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-gray-900 flex items-center gap-3">
+                        <i class="fas fa-file-alt text-blue-600"></i> Description de l'offre
+                    </h2>
+                    <button onclick="closeDescriptionModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="descriptionDocsContent" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                </div>
+                <div class="mt-8 pt-8 border-t border-gray-50 flex gap-4">
+                    <button onclick="closeDescriptionModal(); postuler(${id})" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all group">
+                        Postuler maintenant <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                    <button onclick="closeDescriptionModal()" class="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">Fermer</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeDescriptionModal(); });
+    }
+
+    const content = modal.querySelector('#descriptionDocsContent');
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                    <img src="${o.logo || '../assets/images/default-company.png'}" alt="" class="w-10 h-10 object-contain rounded-lg">
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-gray-900">${esc(o.titre)}</h4>
+                    <p class="text-sm font-bold text-blue-600 uppercase tracking-widest">${esc(o.entreprise)}</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 ${o.statut === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} rounded-full text-[8px] font-black uppercase tracking-widest">
+                  ${o.statut === 'active' ? 'ACTIVE' : 'ARCHIVÉE'}
+                </span>
+                <span class="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-[10px] font-black uppercase tracking-widest">${esc(o.localisation)}</span>
+            </div>
+            <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                ${o.description ? o.description.replace(/\n/g, '<br>') : 'Pas de description détaillée.'}
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('.transform').classList.remove('scale-95');
+        modal.querySelector('.transform').classList.add('scale-100');
+    }, 100);
+  };
+
+  window.closeDescriptionModal = () => {
+    const modal = document.getElementById('modalDescriptionDocs');
+    if (!modal) return;
+    modal.classList.remove('opacity-100');
+    modal.querySelector('.transform').classList.remove('scale-100');
+    modal.querySelector('.transform').classList.add('scale-95');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+  };
+
   // --- Company Profile Modal Logic ---
   const modalCompanyProfile = document.getElementById("modalCompanyProfile");
 

@@ -38,12 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $attente_query = "SELECT 
                             c.id,
                             c.date_candidature,
-                            o.titre,
-                            o.entreprise,
+                            o.title AS titre,
+                            COALESCE(e.name, o.entreprise) as entreprise,
                             o.localisation,
                             o.type_contrat
                           FROM candidatures c
-                          INNER JOIN offres_stage o ON c.offre_id = o.id
+                          INNER JOIN offres o ON c.offre_id = o.id
+                          LEFT JOIN entreprises e ON o.entreprise_id = e.id
                           WHERE c.user_id = :user_id AND c.statut = 'pending'
                           ORDER BY c.date_candidature DESC";
         
@@ -56,13 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $accepte_query = "SELECT 
                             c.id,
                             c.date_candidature,
-                            o.titre,
-                            o.entreprise,
+                            o.title AS titre,
+                            COALESCE(e.name, o.entreprise) as entreprise,
                             o.localisation,
                             o.type_contrat,
                             o.duree
                           FROM candidatures c
-                          INNER JOIN offres_stage o ON c.offre_id = o.id
+                          INNER JOIN offres o ON c.offre_id = o.id
+                          LEFT JOIN entreprises e ON o.entreprise_id = e.id
                           WHERE c.user_id = :user_id AND c.statut = 'accepted'
                           ORDER BY c.date_candidature DESC";
         
@@ -93,14 +95,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($user['type_compte'] === 'entreprise') {
             $offres_query = "SELECT 
                                 o.id,
-                                o.titre,
-                                o.entreprise,
+                                o.title AS titre,
+                                COALESCE(e.name, o.entreprise) as entreprise,
                                 o.localisation,
                                 o.duree,
                                 o.date_publication,
                                 o.statut,
                                 (SELECT COUNT(*) FROM candidatures WHERE offre_id = o.id) as nb_candidatures
-                             FROM offres_stage o
+                             FROM offres o
+                             LEFT JOIN entreprises e ON o.entreprise_id = e.id
                              WHERE o.user_id = :user_id
                              ORDER BY o.date_publication DESC";
             
@@ -183,17 +186,17 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         try {
             $stats = [];
             // Offres actives
-            $q1 = $db->prepare("SELECT COUNT(*) FROM offres_stage WHERE user_id = :uid AND statut = 'active'");
+            $q1 = $db->prepare("SELECT COUNT(*) FROM offres WHERE user_id = :uid AND statut = 'active'");
             $q1->execute([':uid' => $user_id]);
             $stats['offres_actives'] = $q1->fetchColumn();
             
             // Total candidatures reçues
-            $q2 = $db->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres_stage o ON c.offre_id = o.id WHERE o.user_id = :uid");
+            $q2 = $db->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres o ON c.offre_id = o.id WHERE o.user_id = :uid");
             $q2->execute([':uid' => $user_id]);
             $stats['total_candidatures'] = $q2->fetchColumn();
             
             // Recrutements (candidatures acceptées)
-            $q3 = $db->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres_stage o ON c.offre_id = o.id WHERE o.user_id = :uid AND c.statut = 'accepte'");
+            $q3 = $db->prepare("SELECT COUNT(*) FROM candidatures c INNER JOIN offres o ON c.offre_id = o.id WHERE o.user_id = :uid AND c.statut = 'accepte'");
             $q3->execute([':uid' => $user_id]);
             $stats['recrutements'] = $q3->fetchColumn();
             
@@ -229,7 +232,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_PO
         $oldPassword = $_POST['old_password'] ?? '';
         $newPassword = $_POST['new_password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
-        if ($oldPassword || $newPassword || $confirmPassword) {
+        if ($newPassword || $confirmPassword) {
             if (empty($oldPassword) || empty($newPassword) || empty($confirmPassword)) {
                 echo json_encode(['success' => false, 'message' => 'Veuillez remplir tous les champs de mot de passe.']);
                 $db->rollBack();
@@ -318,7 +321,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_PO
 
 // POST: update enterprise notifications preferences
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_enterprise_notifications') {
-    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+    if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
         echo json_encode(['success' => false, 'message' => 'Accès refusé']);
         exit;
     }
@@ -387,7 +390,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_PO
 
 // POST: upload_company_signature (entreprise only) - secure storage for acceptance message signature
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_company_signature') {
-    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+    if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
         echo json_encode(['success' => false, 'message' => 'Accès refusé']);
         exit;
     }
@@ -453,9 +456,8 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_PO
     }
 }
 
-// POST: remove_company_signature (entreprise only)
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'remove_company_signature') {
-    if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'entreprise') {
+    if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
         echo json_encode(['success' => false, 'message' => 'Accès refusé']);
         exit;
     }
@@ -600,42 +602,33 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET[
         ]);
     }
 }
-// POST: update_profile_enterprise (Administrator or Enterprise)
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile_enterprise') {
+    $entreprise_id = (int)($_SESSION['entreprise_id'] ?? 0);
+    if ($entreprise_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Aucune entreprise associée à votre compte.']);
+        exit;
+    }
+
     try {
-        $nom = $_POST['nom'] ?? '';
-        $industry = $_POST['industry'] ?? '';
-        $size = $_POST['size'] ?? '';
-        $website = $_POST['website'] ?? '';
-        $bio = $_POST['bio'] ?? '';
-        $address = $_POST['address'] ?? '';
-        $hr_manager = $_POST['hr_manager'] ?? '';
-        
-        $company_id = $_SESSION['company_id'];
+        $nom = trim($_POST['nom'] ?? '');
+        $industry = trim($_POST['industry'] ?? '');
+        $size = trim($_POST['size'] ?? '');
+        $website = trim($_POST['website'] ?? '');
+        $bio = trim($_POST['bio'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $hr_manager = trim($_POST['hr_manager'] ?? '');
 
-        if (empty($company_id)) {
-            echo json_encode(['success' => false, 'message' => 'Aucune entreprise associée.']);
-            exit;
-        }
-
-        // Update all users in the same company
-        // Using industry_sector for industry, company_size for size, website_url for website
-        $stmt = $db->prepare("UPDATE users SET 
-                                user_nom = :nom, 
-                                industry_sector = :industry, 
-                                company_size = :size, 
-                                website_url = :website, 
-                                bio = :bio, 
-                                adresse = :address,
-                                tax_identification_number = :hr
-                              WHERE company_id = :cid");
-        
-        // Wait, why tax_identification_number for HR? Probably better to add a column or use something else.
-        // But let's stick to what's available or just update common fields.
-        // Let's check columns again. 
-        // I'll used tax_identification_number as a placeholder if no hr_manager column.
-        
-        $stmt->execute([
+        // 1. Update the 'entreprises' table (Source of Truth)
+        $q_ent = $db->prepare("UPDATE entreprises SET 
+                                 name = :nom, 
+                                 secteur = :industry, 
+                                 taille = :size, 
+                                 website_url = :website, 
+                                 bio = :bio, 
+                                 adresse = :address,
+                                 hr_manager = :hr
+                               WHERE id = :eid");
+        $q_ent->execute([
             ':nom' => $nom,
             ':industry' => $industry,
             ':size' => $size,
@@ -643,13 +636,99 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_PO
             ':bio' => $bio,
             ':address' => $address,
             ':hr' => $hr_manager,
-            ':cid' => $company_id
+            ':eid' => $entreprise_id
+        ]);
+
+        // 2. Update all users belonging to this enterprise to sync shared fields
+        // We sync 'nom' (as user_nom) and 'industry_sector' for compatibility
+        $q_users = $db->prepare("UPDATE users SET 
+                                    nom = :nom,
+                                    industry_sector = :industry,
+                                    company_size = :size,
+                                    website_url = :website
+                                  WHERE entreprise_id = :eid");
+        $q_users->execute([
+            ':nom' => $nom,
+            ':industry' => $industry,
+            ':size' => $size,
+            ':website' => $website,
+            ':eid' => $entreprise_id
         ]);
 
         $_SESSION['user_nom'] = $nom;
-        
-        echo json_encode(['success' => true, 'message' => 'Profil entreprise mis à jour.']);
+        echo json_encode(['success' => true, 'message' => 'Profil de l\'entreprise mis à jour avec succès.']);
+
     } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erreur SQL : ' . $e->getMessage()]);
+    }
+}
+
+// POST: update_enterprise_security (email, phone, password for enterprise)
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_enterprise_security') {
+    if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'employee' && $_SESSION['user_role'] !== 'admin')) {
+        echo json_encode(['success' => false, 'message' => 'Accès refusé']);
+        exit;
+    }
+    
+    try {
+        $db->beginTransaction();
+        
+        $email = trim($_POST['email'] ?? '');
+        $telephone = trim($_POST['telephone'] ?? '');
+        
+        if ($email === '') {
+            echo json_encode(['success' => false, 'message' => 'L\'email est obligatoire.']);
+            if ($db->inTransaction()) $db->rollBack();
+            exit;
+        }
+
+        // Update basic user info
+        $update_user = $db->prepare("UPDATE users SET email = :email, telephone = :tel WHERE id = :uid");
+        $update_user->execute([':email' => $email, ':tel' => $telephone, ':uid' => $user_id]);
+        
+        $_SESSION['user_email'] = $email;
+        $_SESSION['user_tel'] = $telephone;
+
+        // Password change logic
+        $oldPassword = $_POST['old_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        
+        if ($newPassword || $confirmPassword) {
+            if (empty($oldPassword) || empty($newPassword) || empty($confirmPassword)) {
+                echo json_encode(['success' => false, 'message' => 'Veuillez remplir tous les champs de mot de passe.']);
+                if ($db->inTransaction()) $db->rollBack();
+                exit;
+            }
+            if (strlen($newPassword) < 8) {
+                echo json_encode(['success' => false, 'message' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.']);
+                if ($db->inTransaction()) $db->rollBack();
+                exit;
+            }
+            if ($newPassword !== $confirmPassword) {
+                echo json_encode(['success' => false, 'message' => 'Les nouveaux mots de passe ne correspondent pas.']);
+                if ($db->inTransaction()) $db->rollBack();
+                exit;
+            }
+
+            $stmt = $db->prepare("SELECT password FROM users WHERE id = :uid");
+            $stmt->execute([':uid' => $user_id]);
+            $hash = $stmt->fetchColumn();
+            if (!password_verify($oldPassword, $hash)) {
+                echo json_encode(['success' => false, 'message' => 'Le mot de passe actuel est incorrect.']);
+                if ($db->inTransaction()) $db->rollBack();
+                exit;
+            }
+
+            $new_hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $upd_pass = $db->prepare("UPDATE users SET password = :pw WHERE id = :uid");
+            $upd_pass->execute([':pw' => $new_hash, ':uid' => $user_id]);
+        }
+
+        $db->commit();
+        echo json_encode(['success' => true, 'message' => 'Sécurité et contact mis à jour avec succès.']);
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) $db->rollBack();
         echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()]);
     }
 }

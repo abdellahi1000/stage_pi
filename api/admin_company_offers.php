@@ -11,7 +11,7 @@ if (!isset($_SESSION['logged_in']) || ($_SESSION['user_type'] !== 'entreprise' &
 }
 
 $is_global_admin = $_SESSION['user_type'] === 'admin';
-$company_id = $_SESSION['company_id'];
+$company_id = $_SESSION['entreprise_id'] ?? $_SESSION['user_id'];
 $user_id = $_SESSION['user_id'];
 
 $database = new Database();
@@ -30,17 +30,23 @@ try {
     if ($action === 'list') {
         // Global admin sees ALL offers; enterprise sees only their own
         if ($is_global_admin) {
-            $stmt = $db->prepare("SELECT o.*, u.nom as company_name, (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
-                                  FROM offres_stage o 
+            $stmt = $db->prepare("SELECT o.*, o.title as titre, u.nom as company_name, 
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id AND c.type_contrat = 'Stage') as total_stagiaires,
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id AND (c.type_contrat = 'Alternance' OR c.type_contrat = 'Apprentissage')) as total_alternances,
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
+                                  FROM offres o 
                                   LEFT JOIN users u ON o.user_id = u.id
                                   ORDER BY o.date_publication DESC");
             $stmt->execute();
         } else {
-            $stmt = $db->prepare("SELECT o.*, (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
-                                  FROM offres_stage o 
-                                  WHERE o.user_id = :cid 
+            $stmt = $db->prepare("SELECT o.*, o.title as titre, 
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id AND c.type_contrat = 'Stage') as total_stagiaires,
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id AND (c.type_contrat = 'Alternance' OR c.type_contrat = 'Apprentissage')) as total_alternances,
+                                  (SELECT COUNT(*) FROM candidatures c WHERE c.offre_id = o.id) as total_candidatures 
+                                  FROM offres o 
+                                  WHERE o.entreprise_id = :cid 
                                   ORDER BY o.date_publication DESC");
-            $stmt->execute([':cid' => $company_id]);
+            $stmt->execute([':cid' => $_SESSION['entreprise_id']]);
         }
         $offres = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'offres' => $offres]);
@@ -62,33 +68,36 @@ try {
         $technologies = $data['technologies'] ?? '';
         $questions = $data['questions'] ?? '';
         $tags = $data['tags'] ?? '';
+        $places_alternances = $data['places_alternances'] ?? 0;
+
+        // Specific permissions for type
+        if ($type_contrat === 'Stage') require_permission('can_create_stagiaire', $db);
+        if ($type_contrat === 'Alternance') require_permission('can_create_alternance', $db);
 
         // Check permission if not admin
-        if (!$is_admin && !empty($id)) {
+        if (!$is_global_admin && !empty($id)) {
              // For employees, we might check if they are the owner OR if they have can_delete/edit permission
              // For now assume if not admin, only owner can edit.
         }
 
-        // Get company name for the 'entreprise' column (from the manager's record or company record)
-        $stmt_comp = $db->prepare("SELECT nom FROM users WHERE id = :cid");
-        $stmt_comp->execute([':cid' => $company_id]);
+        // Get company name - use entreprises table instead of users
+        $stmt_comp = $db->prepare("SELECT name FROM entreprises WHERE id = :cid");
+        $stmt_comp->execute([':cid' => $_SESSION['entreprise_id']]);
         $entreprise_name = $stmt_comp->fetchColumn();
 
         if ($id) {
             require_permission('can_edit_offers', $db);
-            // Update - only if offer belongs to someone in the same company
-            // Global admin can edit any offer; enterprise only theirs
+            // Update - check by enterprise_id
             if (!$is_global_admin) {
-                $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
-                $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
+                $stmt_v = $db->prepare("SELECT id FROM offres WHERE id = :id AND entreprise_id = :eid");
+                $stmt_v->execute([':id' => $id, ':eid' => $_SESSION['entreprise_id']]);
                 if ($stmt_v->rowCount() === 0) {
                      echo json_encode(['success' => false, 'message' => "Offre non trouvée ou accès refusé"]);
                      exit;
                 }
             }
-
-            $stmt = $db->prepare("UPDATE offres_stage SET 
-                                    titre = :titre, 
+            $stmt = $db->prepare("UPDATE offres SET 
+                                    title = :titre, 
                                     description = :description, 
                                     localisation = :localisation, 
                                     type_contrat = :type_contrat, 
@@ -100,7 +109,8 @@ try {
                                     technologies = :technologies,
                                     questions = :questions,
                                     tags = :tags,
-                                    archived_by_admin = :archived_by_admin
+                                    places_alternances = :places_alternances,
+                                    entreprise_id = :eid
                                   WHERE id = :id");
             $stmt->execute([
                 ':titre' => $titre,
@@ -115,17 +125,19 @@ try {
                 ':technologies' => $technologies,
                 ':questions' => $questions,
                 ':tags' => $tags,
-                ':archived_by_admin' => ($is_admin && $statut === 'archivee') ? 1 : 0,
+                ':places_alternances' => $places_alternances,
+                ':eid' => $_SESSION['entreprise_id'],
                 ':id' => $id
             ]);
             echo json_encode(['success' => true, 'message' => 'Offre mise à jour']);
         } else {
             require_permission('can_create_offers', $db);
-            // Create
-            $stmt = $db->prepare("INSERT INTO offres_stage (user_id, titre, description, entreprise, localisation, type_contrat, duree, categorie_id, nombre_stagiaires, statut, specialization, technologies, questions, tags) 
-                                  VALUES (:uid, :titre, :description, :entreprise, :localisation, :type_contrat, :duree, :categorie_id, :nombre_stagiaires, :statut, :specialization, :technologies, :questions, :tags)");
+            // Crucial Fix: user_id references users.id (must be valid user), entreprise_id groups them
+            $stmt = $db->prepare("INSERT INTO offres (user_id, entreprise_id, title, description, entreprise, localisation, type_contrat, duree, categorie_id, nombre_stagiaires, places_alternances, statut, specialization, technologies, questions, tags) 
+                                  VALUES (:uid, :eid, :titre, :description, :entreprise, :localisation, :type_contrat, :duree, :categorie_id, :nombre_stagiaires, :places_alternances, :statut, :specialization, :technologies, :questions, :tags)");
             $stmt->execute([
-                ':uid' => $company_id,
+                ':uid' => $_SESSION['user_id'], // Valid User ID for foreign key
+                ':eid' => $_SESSION['entreprise_id'], // Enterprise grouping ID
                 ':titre' => $titre,
                 ':description' => $description,
                 ':entreprise' => $entreprise_name ?: 'Entreprise',
@@ -134,6 +146,7 @@ try {
                 ':duree' => $duree,
                 ':categorie_id' => $categorie_id ?: null,
                 ':nombre_stagiaires' => $nombre_stagiaires ?: 1,
+                ':places_alternances' => $places_alternances,
                 ':statut' => $statut,
                 ':specialization' => $specialization,
                 ':technologies' => $technologies,
@@ -149,12 +162,12 @@ try {
             // Global admin can delete any offer
             $can_delete = $is_global_admin;
             if (!$can_delete) {
-                $stmt_v = $db->prepare("SELECT id FROM offres_stage WHERE id = :id AND user_id = :cid");
+                $stmt_v = $db->prepare("SELECT id FROM offres WHERE id = :id AND (user_id = :cid OR entreprise_id = :cid)");
                 $stmt_v->execute([':id' => $id, ':cid' => $company_id]);
                 $can_delete = ($stmt_v->rowCount() > 0);
             }
             if ($can_delete) {
-                $stmt = $db->prepare("DELETE FROM offres_stage WHERE id = :id");
+                $stmt = $db->prepare("DELETE FROM offres WHERE id = :id");
                 $stmt->execute([':id' => $id]);
                 echo json_encode(['success' => true, 'message' => 'Offre supprimée']);
             } else {
@@ -165,7 +178,7 @@ try {
         }
     }
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
